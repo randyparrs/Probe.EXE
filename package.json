@@ -1,0 +1,22 @@
+{
+  "name": "probe-exe",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Consensus health measurements of LLM-based Intelligent Contracts on GenLayer Bradbury",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "campaign": "node collector/campaign/campaign.mjs",
+    "slot": "node collector/campaign/slot.mjs"
+  },
+  "dependencies": {
+    "genlayer-js": "1.2.0",
+    "viem": "2.55.4"
+  },
+  "overrides": {
+    "viem": "2.55.4"
+  }
+}
