@@ -1,0 +1,73 @@
+name: Daily campaign
+
+# One measurement campaign per day on GenLayer Bradbury.
+#
+# Trigger: an external cron (cron-job.org) calls the workflow_dispatch API every 3 hours. GitHub's
+# own `schedule` is not used: it can run late or skip runs. Each dispatch checks whether it is
+# today's slot (collector/campaign/slot.mjs) and exits in seconds when it is not, so the campaign
+# visits 8 different hours over 8 days.
+#
+# The campaign wallet key is a GitHub Actions secret of a testnet-only wallet. Logs show only
+# public data. Until the data store is live, results are kept as a workflow artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Run even outside today's slot"
+        type: boolean
+        default: false
+      tx_per_contract:
+        description: "Calls per reference contract"
+        type: string
+        default: "80"
+
+# Never two campaigns at once: they share one wallet (nonce) and one set of contract copies.
+concurrency:
+  group: probe-exe-campaign
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  campaign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Today's slot
+        id: slot
+        run: node collector/campaign/slot.mjs
+        env:
+          FORCE: ${{ inputs.force }}
+
+      - name: Run campaign
+        if: steps.slot.outputs.run == 'true'
+        run: node collector/campaign/campaign.mjs
+        env:
+          CAMPAIGN_PRIVATE_KEY: ${{ secrets.CAMPAIGN_PRIVATE_KEY }}
+          TX_PER_CONTRACT: ${{ inputs.tx_per_contract || '80' }}
+          RUN_ID: campaign-${{ github.run_id }}
+          OUT_DIR: out/campaign-${{ github.run_id }}
+
+      - name: Keep results
+        if: steps.slot.outputs.run == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: campaign-${{ github.run_id }}
+          path: out/
+          retention-days: 90
+          if-no-files-found: warn

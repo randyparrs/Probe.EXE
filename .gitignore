@@ -1,0 +1,33 @@
+# Secrets: never committed (keys live only in GitHub Actions / Cloudflare secrets)
+.env
+.env.*
+*.key
+*secret*
+*-wallet*
+.dev.vars
+
+# Dependencies and build output
+node_modules/
+.wrangler/
+dist/
+
+# Local run output (published through the data store, not through git)
+out/
+*.jsonl
+*.log
+
+# Internal working notes: never committed (they stay in the private research folder)
+HANDOFF*
+CONTEXTO*
+NOTAS*
+*-DISENO.md
+*-REPORTE*.md
+METRICAS.md
+notes/
+scratch/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
