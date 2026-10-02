@@ -460,13 +460,14 @@ test("a contract with five transactions in a row without a vote is stalled an ho
   assert.equal((await run(112, detected)).error, null);            // a run with no events of the contract
   assert.deepEqual(log(), [[detected, "stalled", { contract: C, since: T0 + 101 }]]);
   assert.deepEqual(stalledContracts(await store.stalled(0, detected + 1)),
-    [{ contract: C, reference: null, llm: "na", since: T0 + 101, transactions: 5, status: "stalled", recovered: null }]);
+    [{ contract: C, reference: null, llm: "na", since: T0 + 101, transactions: 5, status: "stalled", recovered: null, last_tx: "0x" + word(5) }]);
   assert.equal((await run(113, detected + 60)).error, null);       // detected once
   assert.equal(log().length, 1);
 
   assert.equal((await run(201, detected + 120)).error, null);
   assert.deepEqual(rows(), [{ address: C, streak: 0, since_ts: T0 + 101, stalled_ts: detected, stalled_tx: 6, recovered_ts: T0 + 201 }]);
-  assert.deepEqual(log()[1], [T0 + 201, "recovered", { contract: C, since: T0 + 101, transactions: 6 }]);
+  assert.deepEqual(log()[1], [T0 + 201, "recovered", { contract: C, since: T0 + 101, transactions: 6, tx: "0x" + word(3) }]);   // the vote was on the third
+  assert.equal(stalledContracts(await store.stalled(0, detected + 200))[0].last_tx, "0x" + word(6));
   assert.deepEqual(stalledContracts(await store.stalled(0, detected + 200)).map((r) => [r.status, r.transactions, r.recovered]), [["recovered", 6, T0 + 201]]);
   assert.equal((await store.stalled(T0 + 202, T0 + 9999)).length, 0);   // a view that starts after the recovery
   assert.equal(viewRange("24h", 100000, { epochs: [] }).from, 100000 - 86400);
@@ -574,7 +575,7 @@ test("the event log merges its sources newest first, filters by type and pages",
   assert.deepEqual(all.events.map((e) => [e.id, e.type, e.group]), [["f7000", "campaign", "campaigns"], ["e168", "epoch", "epochs"],
     ["l2", "banned", "validators"], ["l1", "stalled", "contracts"], ["c3000", "campaign", "campaigns"], ["r2000", "rpc", "rpc"], ["m", "method", "campaigns"]]);
   assert.equal(all.next, null);
-  assert.deepEqual(all.events[1].data, { epoch: 168, previous_seconds: 5500 });      // epoch 167 started before the range: not listed
+  assert.deepEqual(all.events[1].data, { epoch: 168, block: null, previous_seconds: 5500 });      // epoch 167 started before the range: not listed
   assert.deepEqual([all.events[2].data.moniker, all.events[3].data.reference], ["Alpha", "company"]);
   assert.deepEqual(events({ ...base, type: "campaigns" }).events.map((e) => e.id), ["f7000", "c3000", "m"]);
   assert.deepEqual(events({ ...base, before: "l1" }).events.map((e) => e.id), ["c3000", "r2000", "m"]);
