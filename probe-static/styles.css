@@ -497,6 +497,10 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .c117.alt{background:#111712}
 .recovered{color:#39d353}
 
+/* notice of a section while the current epoch has no campaign yet, or while one is running */
+.camp-note{color:#e3a008;font-size:14px;max-width:90ch;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}
+.camp-note[hidden]{display:none}
+
 /* campaign and RPC status variants */
 .cs-running{color:#e3a008;font-weight:600}
 .cs-failed{color:#f0524f;font-weight:600}

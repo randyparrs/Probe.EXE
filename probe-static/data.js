@@ -78,7 +78,7 @@
       for (const key of keys) {
         loaded.add(key);
         content.set(key, empty[key] ? 'empty' : 'ok');
-        state(key, empty[key] ? 'empty' : 'ok', { oldEpoch });
+        state(key, empty[key] ? 'empty' : 'ok', { oldEpoch, text: emptyText.get(key) });
       }
       markStale();
     } catch {
@@ -604,13 +604,76 @@
   const CONTRACTS = ['a-reference-contracts', 'b-network-contracts', 'c-stuck-contracts'];
   const EVENTS = ['event-log-newest-first'];
 
+  // ---- The campaign runs once a day, so a new epoch has no campaign for hours. While the current
+  // epoch has none, its campaign blocks stay empty and each section says when the next campaign is
+  // expected, with a button to the epoch of the last one. While a campaign is running the sections
+  // say so and the blocks show what there is so far. An earlier epoch picked by hand is shown as it is.
+  const CAMP_BLOCKS = ['first-attempt-acceptance-contracts-with-llm-calls', 'first-attempt-acceptance-control-without-llm', 'what-goes-wrong-votes',
+    'what-goes-wrong-attempts', 'time-to-acceptance', 'operators-timing-out', 'a-reference-contracts', 'committee-selection-check'];
+  const WAITING = 'Waiting for the next campaign.';
+  const emptyText = new Map();   // block -> the text of its "no data" state, when it is not the usual one
+  const campaignTx = o => o.campaign.llm.tx + o.campaign.control.tx;
+  const isCurrent = selected => !!(meta && meta.epoch) && selected === `epoch:${meta.epoch.number}`;
+  const markWaiting = waiting => { for (const key of CAMP_BLOCKS) { if (waiting) emptyText.set(key, WAITING); else emptyText.delete(key); } };
+
+  // The 3-hour bucket of a UTC day the campaign runs in: bucket number (day of the year mod 8), the
+  // rule of collector/campaign/slot.mjs. Seconds.
+  function campaignSlot(now) {
+    const d = new Date(now * 1000);
+    const day = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000;
+    const dayOfYear = Math.floor((day - Date.UTC(d.getUTCFullYear(), 0, 1) / 1000) / 86400) + 1;
+    return { day, start: day + (dayOfYear % 8) * 10800, end: day + (dayOfYear % 8 + 1) * 10800 };
+  }
+  // the bucket of the next campaign: today's while it has not ended and has no campaign, tomorrow's otherwise
+  function nextSlot(now, lastStarted) {
+    const today = campaignSlot(now);
+    return now < today.end && !(lastStarted >= today.start) ? today : campaignSlot(today.day + 86400);
+  }
+  // the newest epoch before the current one that has campaign transactions, or null
+  function lastCampaignEpoch() {
+    const ts = meta.updated.campaign;
+    const earlier = meta.epochs.filter(e => e.epoch < meta.epoch.number && e.since != null && ts != null && e.since <= ts).map(e => e.epoch);
+    return earlier.length ? Math.max(...earlier) : null;
+  }
+
+  // The notice of the sections, from the overview of the selected view. Returns whether the current
+  // epoch is still waiting for its campaign.
+  function campaignNote(o, selected) {
+    const current = isCurrent(selected), last = o.last_campaign;
+    const waiting = current && !campaignTx(o);
+    let parts = null;
+    if (current && last && last.status === 'running') {
+      parts = [el('span', {}, `Campaign running since ${clock(new Date(last.started * 1000))}. Results appear as transactions finish.`)];
+    } else if (waiting) {
+      const slot = nextSlot(meta.now, last ? last.started : null);
+      const hm = ts => (ts === slot.day + 86400 ? '24:00' : clock(new Date(ts * 1000)).replace(' UTC', ''));
+      const m = lastCampaignEpoch();
+      const day = new Date(slot.start * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+      parts = [el('span', {}, `Next campaign: ${day}, ${hm(slot.start)} to ${hm(slot.end)} UTC. Campaign data for this epoch appears once it runs.`),
+        m == null ? null : el('button', { class: 'c63', type: 'button', 'data-camp-view': `epoch:${m}` }, `See the last campaign (epoch ${m})`)];
+    }
+    $$('[data-camp-note]').forEach(node => {
+      node.hidden = !parts;
+      node.replaceChildren(...(parts || []).filter(Boolean).map(p => p.cloneNode(true)));
+    });
+    return waiting;
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-camp-view]');
+    if (b) document.dispatchEvent(new CustomEvent('probe:viewchange', { detail: { view: b.dataset.campView } }));
+  });
+
   function loadView() {
-    const q = view ? '?view=' + encodeURIComponent(view) : '';
+    const selected = view, q = view ? '?view=' + encodeURIComponent(view) : '';
     const now = Math.floor(Date.now() / 1000);
-    group(OVERVIEW, () => get('api/overview' + q), renderOverview);
-    group(CONTRACTS, () => get('api/contracts' + q), c => ({ 'a-reference-contracts': renderReference(c.reference),
-      'b-network-contracts': renderNetwork(c.network, now), 'c-stuck-contracts': renderStalled(c.stalled || []) }));
-    group(OPERATORS, () => get('api/operators' + q), o => renderOperators(o.operators));
+    const overview = get('api/overview' + q);
+    const waiting = overview.then(o => isCurrent(selected) && !campaignTx(o)).catch(() => false);
+    group(OVERVIEW, () => overview, o => { markWaiting(campaignNote(o, selected)); return renderOverview(o); });
+    group(CONTRACTS, () => Promise.all([get('api/contracts' + q), waiting]), ([c, w]) => {
+      markWaiting(w);
+      return { 'a-reference-contracts': renderReference(c.reference), 'b-network-contracts': renderNetwork(c.network, now), 'c-stuck-contracts': renderStalled(c.stalled || []) };
+    });
+    group(OPERATORS, () => Promise.all([get('api/operators' + q), waiting]), ([o, w]) => { markWaiting(w); return renderOperators(o.operators); });
     group(EVENTS, () => get('api/events' + q), renderEvents);
   }
 
