@@ -113,10 +113,9 @@ back and checks that the result has the pre-registered SHA-256.
 
 The reports in `results/bradbury/` can be produced again from the published data:
 `scripts/network_report.py` (`network-report-v1.txt` to `v6.txt`), `scripts/evaluate_validation.py`
-(`validation-final.txt`) and `scripts/sensitivity_events.py` (`sensitivity-events.txt`). The two
-annexes, `annex-phase0-v5.txt` and `annex-reread-v4.txt`, are the output of one-off analyses over
-the first Phase 0 campaigns, whose rows are not published here; they cannot be produced again from
-this repository.
+(`validation-final.txt`), `scripts/sensitivity_events.py` (`sensitivity-events.txt`) and
+`scripts/phase0_annexes.py` (`annex-phase0-v5.txt` and `annex-reread-v4.txt`, from the rows of the
+Phase 0 campaigns: `campaign-<contract>.jsonl`, `-r2.jsonl`, `-dv1.jsonl` and `-final.jsonl`).
 
 Two things in `results/` are in Spanish and are published as they were recorded:
 
