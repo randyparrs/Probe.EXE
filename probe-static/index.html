@@ -151,7 +151,6 @@
                     <button class="c72" type="button" title="Sort by first attempt" data-table="ref" data-sort-key="fa">First attempt<span data-arrow> ▼</span></button>
                     <button class="c72" type="button" title="Sort by after retry" data-table="ref" data-sort-key="ar">After retry<span data-arrow> ↕</span></button>
                     <button class="c72" type="button" title="Sort by no consensus" data-table="ref" data-sort-key="nc">No consensus<span data-arrow> ↕</span></button>
-                    <button class="c72" type="button" title="The leader's execution failed and validators agreed on the error. Counted apart." data-table="ref" data-sort-key="ee">Accepted w/ exec error<span data-arrow> ↕</span></button>
                     <button class="c71" type="button" title="Sort by retry causes" data-table="ref" data-sort-key="rc">Retry causes<span data-arrow> ↕</span></button>
                     <button class="c72" type="button" title="Sort by timeout share" data-table="ref" data-sort-key="vo">Votes<span data-arrow> ↕</span></button>
                     <button class="c72" type="button" title="Time to acceptance: median and p90" data-table="ref" data-sort-key="tt">Time to accept.<span data-arrow> ↕</span></button>
@@ -192,17 +191,17 @@
           </div>
       </fieldset>
       <fieldset class="c66">
-        <legend class="c30">C. Stuck contracts <span class="c31" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET]</span></legend>
+        <legend class="c30">C. Stalled contracts <span class="c31" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET]</span></legend>
           <div class="contents" data-only="desk">
             <div class="c68">
-              <div class="c114" data-rows="stuck-desk">
+              <div class="c114" data-rows="stalled-desk">
                 <div class="c115"><div class="c116">Contract</div><div class="c116">Since</div><div class="c116">Transactions without a vote</div><div class="c116">Status</div></div>
               </div>
             </div>
           </div>
-          <div class="contents" data-only="mob" data-rows="stuck-mob">
+          <div class="contents" data-only="mob" data-rows="stalled-mob">
           </div>
-        <div class="c123">A contract is listed when five transactions in a row received no vote and the fifth one is over 60 minutes old. It recovers at the next vote. Detection starts on 2026-10-02.</div>
+        <div class="c123">A contract is stalled when five transactions in a row received no vote and the fifth one is over 60 minutes old. It recovers at the next vote. Detection starts on 2026-10-02.</div>
         <div class="c123">A contract copy stopped processing transactions after the epoch change 165 -&gt; 166 while an identical copy kept working (September 2026).</div>
       </fieldset>
     </div>
@@ -444,7 +443,7 @@
           <div>History on this page starts on 2026-10-01. Earlier measurements are in Model validation.</div>
           <div><div class="c207">[NET] Network</div><div>All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours. Updated every minute. Since 2026-10-01.</div></div>
           <div><div class="c207">[CAMP] Campaign</div><div>Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions. Runs once a day at a rotating hour, so every hour of the day is covered over time. Only transactions sent by the campaign wallet to a reference contract count as campaign. Since 2026-10-01.</div></div>
-          <div><div class="c207">[CHAIN] Chain</div><div>Read directly from the staking contract: validator status, stake and epochs. Updated every minute. Since 2026-10-01.</div></div>
+          <div><div class="c207">[CHAIN] Chain</div><div>Read directly from the staking contract. Epoch changes are read every minute. The validator lists (active, banned and quarantine records) are read every 5 minutes and whenever an epoch starts. Stake and declared name are read for a few validators every minute, the ones read longest ago. Since 2026-10-01.</div></div>
         </div>
       </fieldset>
       <fieldset class="c29">
@@ -469,9 +468,13 @@
               <div><span class="c52">█</span> Timeout: the validator did not submit a vote before the deadline.</div>
             </div>
           </div>
-          <div><div class="c207">Accepted with execution error</div><div>When the leader's execution fails and validators agree on the error, the transaction is accepted but the contract did not do its work. We count these apart so they do not raise the acceptance rate.</div></div>
           <div><div class="c207">Attribution per operator</div><div>Every vote and every leader round is attributed to the validator address that cast it, then shown with the operator name declared on chain.</div></div>
           <div><div class="c207">Eligible validators</div><div>A validator counts as eligible when it is in the active list of the staking contract, not in its banned list and with no quarantine in effect. The eligible set is stored each time it changes and at each epoch change, and each campaign transaction is compared with the set in effect at its block. The GenLayer documentation says that a ban or a quarantine prevents new selection. Measured: the quarantine list of the staking contract keeps entries after they expire. An entry "until epoch N" stops applying when epoch N starts: in epoch 168, validators listed with a quarantine until epoch 168 voted and led. Expired entries are ignored, here and in the quarantined count.</div></div>
+          <div><div class="c207">Too few votes to compare</div><div>An operator with fewer than 10 votes on campaign contracts with LLM calls in the view is shown as "Too few votes to compare" and is never marked [ABOVE REST].</div></div>
+          <div><div class="c207">Stalled contracts</div><div>A contract is stalled when five transactions in a row received no vote and the fifth one is over 60 minutes old. A transaction that stays idle counts as one without a vote. The contract recovers at the next vote on any of its transactions.</div></div>
+          <div><div class="c207">Campaigns</div><div>A campaign is running while one of its transactions had an event in the last 10 minutes. Campaign transactions created more than 30 minutes apart belong to two campaigns. A day counts as a failed campaign when its 3-hour slot ended more than 30 minutes ago and no campaign transaction was seen in it.</div></div>
+          <div><div class="c207">RPC incidents</div><div>An incident opens when two runs of the collector in a row get an answer from the RPC that is not JSON, and closes after five clean runs. Other errors are not counted as incidents.</div></div>
+          <div><div class="c207">Stale data</div><div>A block is marked [STALE] when its source has not been updated for longer than expected: 10 minutes for [NET] and [CHAIN], 30 hours for [CAMP].</div></div>
           <div><div class="c207">Intervals</div><div>Rates come with a 95% Clopper-Pearson interval, an exact binomial interval. It stays valid for small counts, where it is wide.</div></div>
           <div><div class="c207">Detecting contracts with LLM calls</div><div>A contract is labeled "with LLM calls" when its code on chain contains exec_prompt, prompt_comparative or prompt_non_comparative. Limit: the label applies to the contract, not to each transaction. A labeled contract can run code paths without an LLM call, and contracts whose code we cannot read are shown as "Code not available".</div></div>
         </div>
@@ -509,6 +512,7 @@
           <div>- One campaign a day gives about 80 transactions per contract, so intervals are wide.</div>
           <div>- There are no alerts in this version.</div>
           <div>- The latency of transactions that cross an epoch change is not reported yet.</div>
+          <div>- Transactions accepted with an execution error are not counted apart: consensus events do not carry the execution result, so they count as accepted.</div>
           <div>- Network counts depend on the RPC. Gaps in RPC data are listed in Events.</div>
           <div>- Operator names are declared by the operators on chain and are not verified.</div>
         </div>
@@ -523,14 +527,15 @@
               <div><span class="c214">GET /api/meta</span>: last update per source, current epoch, list of epochs, RPC state.</div>
               <div><span class="c214">GET /api/tape</span>: the last 40 network transactions with their result.</div>
               <div><span class="c214">GET /api/overview?view=</span>: first-attempt acceptance of the campaign (with LLM and control) and of the network, votes by type, retry causes, time to acceptance, validator counts, last campaign.</div>
-              <div><span class="c214">GET /api/contracts?view=</span>: reference contracts, every contract of the network with its LLM label, and contracts that stopped making progress.</div>
+              <div><span class="c214">GET /api/contracts?view=</span>: reference contracts, every contract of the network with its LLM label, and stalled contracts.</div>
               <div><span class="c214">GET /api/operators?view=</span>: one row per validator: votes by type on campaign contracts with LLM, on the control and on the whole network, leader rounds and leader timeouts, status, stake, selection weight, first-leader counts against the expected ones, and a series by epoch.</div>
               <div><span class="c214">GET /api/events?view=&amp;type=&amp;before=</span>: the event log, 50 per page. <span class="c214">type</span> is one of epochs, validators, contracts, campaigns, rpc. <span class="c214">before</span> is the <span class="c214">next</span> value of the previous page.</div>
+              <div><span class="c214">GET /api/status</span>: the last block the collector stored and its last ten runs (range read, requests to the RPC, errors).</div>
               <div><span class="c214">GET /api/badge/{contract}.svg</span>: an image with the first-attempt acceptance of a contract in the current epoch, to embed in a README or a page. Contracts has a [badge] button on each network contract that copies its Markdown.</div>
               <div><span class="c214">GET /api/export?epoch=&amp;after=</span>: every transaction of an epoch with its attempts and votes, 200 per page. <span class="c214">after</span> is the <span class="c214">next</span> value of the previous page. The columns are documented in the README of the repository.</div>
             </div>
           </div>
-          <div><div class="c207">Cache and limits</div><div>Responses are cached: 60 seconds for /api/meta and /api/tape, 300 seconds for the rest. Requests answered from the cache are not limited. Requests that are not in the cache are limited to 120 per minute from one address. Over the limit the API answers 429 with a Retry-After header. For bulk use, take the daily files of the data branch instead.</div></div>
+          <div><div class="c207">Cache and limits</div><div>Responses are cached: 60 seconds for /api/meta, /api/tape and /api/status, 300 seconds for the rest. Requests answered from the cache are not limited. Requests that are not in the cache are limited to 120 per minute from one address. Over the limit the API answers 429 with a Retry-After header. For bulk use, take the daily files of the data branch instead.</div></div>
         </div>
       </fieldset>
     </div>

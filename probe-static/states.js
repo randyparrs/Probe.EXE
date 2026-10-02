@@ -4,13 +4,13 @@
 (() => {
   'use strict';
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-  const CADENCE = { NET: 'minute', CHAIN: 'minute', CAMP: 'day' };
+  const CADENCE = { NET: 'minute', CHAIN: '5 minutes', CAMP: 'day' };
   // a block is stale when its newest source is older than this
   const STALE_MS = { NET: 10 * 60e3, CHAIN: 10 * 60e3, CAMP: 30 * 3600e3 };
   const EMPTY = [
     [/^A\. Reference contracts/, 'No campaign transactions for this contract in this view.'],
     [/^B\. Network contracts/, 'No contract transactions observed in this view.'],
-    [/^C\. Stuck contracts/, 'No stuck contracts detected in this view.'],
+    [/^C\. Stalled contracts/, 'No stalled contracts in this view.'],
     [/^Votes per operator/, 'No votes recorded for this operator in this view.'],
     [/^Event log/, 'No events in this view.'],
   ];

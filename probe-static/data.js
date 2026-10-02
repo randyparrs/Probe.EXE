@@ -271,8 +271,6 @@
   // ---- Contracts
   const LABEL = { llm: ['llm', 'Contract with LLM calls', 'c109'], none: ['none', 'No LLM calls found', 'c112'], na: ['na', 'Code not available', 'c112'] };
   const PENDING_LABEL = ['na', 'Code not read yet', 'c112'];
-  const ERR_TIP = "The leader's execution failed and validators agreed on the error. Counted apart.";
-  const NO_ERR = 'Not measured yet: it needs the execution result of each transaction.';
   const HEIGHTS = '▁▂▃▄▅▆▇█';
 
   // A. reference contracts [CAMP]
@@ -284,7 +282,7 @@
       const n = c.decided, accepted = c.first + c.retry, t = c.time_to_acceptance, r = c.retries, v = c.votes;
       const causes = [['Leader timeout', r.leader_timeouts], ['No majority', r.no_majority], ['Appeal', r.appeals], ['Recomputation', r.recomputations]];
       const data = { 'data-row': '', 'data-table-row': 'ref', 'data-s-id': c.name, 'data-s-fa': n ? c.first / n : -1, 'data-s-ar': n ? accepted / n : -1,
-        'data-s-nc': n ? c.none / n : -1, 'data-s-ee': -1, 'data-s-rc': causes.reduce((s, [, k]) => s + k, 0), 'data-s-vo': v.total ? v.timeout / v.total : -1,
+        'data-s-nc': n ? c.none / n : -1, 'data-s-rc': causes.reduce((s, [, k]) => s + k, 0), 'data-s-vo': v.total ? v.timeout / v.total : -1,
         'data-s-tt': t.median == null ? -1 : t.median };
       const voteTip = VOTES.map(([k, text]) => `${text}: ${int(v[k])}`).join(', ');
       const series = c.by_epoch.filter(e => e.decided);
@@ -300,7 +298,6 @@
             n ? el('div', { class: 'c80', title: '95% Clopper-Pearson interval' }, `CI ${interval(c.first, n)}`) : null),
           cell(share(accepted, n), `${int(accepted)} / ${int(n)}`),
           cell(share(c.none, n), `${int(c.none)} / ${int(n)}`),
-          el('div', { class: 'c78', title: NO_ERR }, el('div', {}, 'n/a')),
           el('div', { class: 'c81' }, causes.map(([text, k]) => el('div', { class: 'c82' }, el('span', {}, text), el('span', {}, int(k))))),
           el('div', { class: 'c78', title: voteTip }, el('div', { class: 'c83' }, v.total ? stacked(v, 10) : 'n/a'), el('div', { class: 'c77' }, `${int(v.total)} votes`)),
           cell(t.median == null ? 'n/a' : `${int(t.median)} s`, t.p90 == null ? null : `p90 ${int(t.p90)} s`),
@@ -321,7 +318,6 @@
           el('div', {}, n ? `First attempt: ${share(c.first, n)} (${int(c.first)} / ${int(n)}, 95% CI ${interval(c.first, n)})` : 'First attempt: n/a'),
           el('div', {}, `After retry: ${share(accepted, n)} (${int(accepted)} / ${int(n)})`),
           el('div', {}, `No consensus: ${share(c.none, n)} (${int(c.none)} / ${int(n)})`),
-          el('div', { title: ERR_TIP }, 'Accepted with execution error: not measured yet'),
           el('div', {}, 'Retry causes: ' + causes.map(([text, k]) => `${text.toLowerCase()} ${int(k)}`).join(', ')),
           el('div', { class: 'c46' }, 'Votes: ', v.total ? stacked(v, 10) : '', ` ${int(v.total)}`),
           el('div', {}, t.median == null ? 'Time to acceptance: n/a' : `Time to acceptance: ${int(t.median)} s, p90 ${int(t.p90)} s`),
@@ -377,22 +373,22 @@
     return rows.length === 0;
   }
 
-  // C. contracts that stopped making progress [NET]
+  // C. stalled contracts [NET]
   const contractName = c => [c.reference ? c.reference + ' ' : null, address(c.contract)];
   function renderStalled(rows) {
-    const desk = document.querySelector('[data-rows="stuck-desk"]'), mob = document.querySelector('[data-rows="stuck-mob"]');
+    const desk = document.querySelector('[data-rows="stalled-desk"]'), mob = document.querySelector('[data-rows="stalled-mob"]');
     if (!desk || !mob) return true;
-    $$('[data-table-row="stuck"]').forEach(node => node.remove());
+    $$('[data-table-row="stalled"]').forEach(node => node.remove());
     rows.forEach((c, i) => {
       const back = c.status === 'recovered';
       const status = () => (back ? el('span', { 'data-utc': iso(c.recovered) }, `Recovered on ${full(c.recovered)}`)
-        : el('span', { 'data-utc': iso(c.since) }, `No progress since ${full(c.since)}`));
-      desk.append(el('div', { class: i % 2 ? 'c117 alt' : 'c117', 'data-table-row': 'stuck' },
+        : el('span', { 'data-utc': iso(c.since) }, `Stalled since ${full(c.since)}`));
+      desk.append(el('div', { class: i % 2 ? 'c117 alt' : 'c117', 'data-table-row': 'stalled' },
         el('div', { class: 'c116' }, contractName(c)),
         el('div', { class: 'c116', 'data-utc': iso(c.since) }, full(c.since)),
         el('div', { class: 'c116' }, int(c.transactions)),
         el('div', { class: back ? 'c116 recovered' : 'c119' }, status())));
-      mob.append(el('div', { class: 'c120', 'data-table-row': 'stuck' },
+      mob.append(el('div', { class: 'c120', 'data-table-row': 'stalled' },
         el('div', {}, contractName(c)),
         el('div', { class: back ? 'recovered' : 'c121' }, status()),
         el('div', { class: 'c122' }, `${int(c.transactions)} transactions without a vote`)));
@@ -418,7 +414,7 @@
       case 'eligible': return `Eligible set: +${int(d.joined.length)} joined, -${int(d.left.length)} left (${int(d.eligible)} eligible).`;
       case 'quarantined': return `${operatorName(d)} quarantined.`;
       case 'banned': return `${operatorName(d)} ${d.until ? `banned until epoch ${d.until}.` : 'banned permanently.'}`;
-      case 'stalled': return `${contractText(d)}: no progress since ${full(d.since)}.`;
+      case 'stalled': return `${contractText(d)}: stalled since ${full(d.since)}.`;
       case 'recovered': return `${contractText(d)}: recovered after ${int(d.transactions)} transactions without a vote.`;
       case 'campaign': return `Campaign ${d.id}: ${int(d.transactions)} transactions, ${d.status}.`;
       case 'method': return `Campaigns counted from consensus events (METRICS v6) since ${d.since}.`;
@@ -601,7 +597,7 @@
   const OVERVIEW = ['network-wide-first-attempt-acceptance', 'first-attempt-acceptance-contracts-with-llm-calls',
     'first-attempt-acceptance-control-without-llm', 'what-goes-wrong-votes', 'what-goes-wrong-attempts', 'time-to-acceptance',
     'operators-timing-out', 'last-campaign', 'validators'];
-  const CONTRACTS = ['a-reference-contracts', 'b-network-contracts', 'c-stuck-contracts'];
+  const CONTRACTS = ['a-reference-contracts', 'b-network-contracts', 'c-stalled-contracts'];
   const EVENTS = ['event-log-newest-first'];
 
   // ---- The campaign runs once a day, so a new epoch has no campaign for hours. While the current
@@ -671,7 +667,7 @@
     group(OVERVIEW, () => overview, o => { markWaiting(campaignNote(o, selected)); return renderOverview(o); });
     group(CONTRACTS, () => Promise.all([get('api/contracts' + q), waiting]), ([c, w]) => {
       markWaiting(w);
-      return { 'a-reference-contracts': renderReference(c.reference), 'b-network-contracts': renderNetwork(c.network, now), 'c-stuck-contracts': renderStalled(c.stalled || []) };
+      return { 'a-reference-contracts': renderReference(c.reference), 'b-network-contracts': renderNetwork(c.network, now), 'c-stalled-contracts': renderStalled(c.stalled || []) };
     });
     group(OPERATORS, () => Promise.all([get('api/operators' + q), waiting]), ([o, w]) => { markWaiting(w); return renderOperators(o.operators); });
     group(EVENTS, () => get('api/events' + q), renderEvents);
