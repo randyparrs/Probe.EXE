@@ -1,0 +1,13 @@
+// Cloudflare Pages project of Probe.EXE: the static page plus one Function that forwards /api/*
+// to the collector Worker.
+{
+	"name": "probe-exe",
+	"pages_build_output_dir": "../probe-static",
+	"compatibility_date": "2026-09-01",
+	"services": [
+		{
+			"binding": "COLLECTOR",
+			"service": "probe-exe-collector"
+		}
+	]
+}
