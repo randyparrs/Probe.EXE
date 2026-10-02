@@ -1,2 +1,6 @@
 # LF in the repository and in the Linux runners, whatever the local checkout uses
 * text=auto eol=lf
+
+# Published data keeps its exact bytes: the pre-registration lists the SHA-256 of these files
+results/** -text
+harness/** -text

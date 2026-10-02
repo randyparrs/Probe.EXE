@@ -16,18 +16,33 @@ out/
 *.jsonl
 *.log
 
-# Internal working notes: never committed (they stay in the private research folder)
-HANDOFF*
-CONTEXTO*
-NOTAS*
-*-DISENO.md
-*-REPORTE*.md
-METRICAS.md
-notes/
-scratch/
+# Published measurement data: the exact files cited in docs/, nothing else from results/
+!results/bradbury/campaign-wizard-v[1-6].jsonl
+!results/bradbury/campaign-company-v[1-6].jsonl
+!results/bradbury/campaign-dvB-v[1-6].jsonl
+!results/bradbury/campaign-dvA-v[1-6].jsonl
+!results/bradbury/campaign-dvA-dv1.jsonl
+!results/bradbury/campaign-dvB-dv1.jsonl
+!results/bradbury/campaign-dvC-dv1.jsonl
+!results/bradbury/execution-recheck-v[13456].jsonl
+!results/bradbury/network-snapshots.jsonl
+!results/bradbury/network-eligibility.jsonl
+!results/bradbury/probes.jsonl
+!results/bradbury/campaign-costs.jsonl
+!results/local-s1.jsonl
+!results/local-s2.jsonl
+!results/local-smoke1-s2.jsonl
+
+# Built by contracts/bradbury/port_tribunal.py from an original without a license: never committed
+contracts/bradbury/tribunal.py
+contracts/bradbury/inputs/tribunal_evidence.json
 
 # Editor and OS files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
+# one-off backfill of the eligible sets: its input and output
+collector/worker/backfill-campaign-tx.json
+collector/worker/backfill-leader-draw.sql
