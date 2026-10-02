@@ -408,3 +408,44 @@ timeout in under 3 s, a rotation, or a validators timeout followed by an appeal)
 them as first attempts. Detail in [SENSITIVITY.md](SENSITIVITY.md).
 
 Code: `collector/core/events.js`.
+
+## Rules of the page (2026-10-02)
+
+The page counts transactions with version 6. These are its other rules, with the constants that
+implement them.
+
+- **Views.** A view is one epoch or the last 24 hours. A transaction belongs to the epoch and the
+  clock hour in which it was created; "last 24 hours" counts whole clock hours, so it can include up
+  to one hour more.
+- **Campaign transaction.** Sent by the campaign wallet to a copy of a reference contract. Any other
+  transaction to those contracts counts only as network.
+- **Health labels.** HEALTHY: first-attempt acceptance of 90% or more. DEGRADED: 70 to 90%. FAILING:
+  below 70%. Fixed thresholds chosen by this project; they apply to acceptance rates, never to an
+  operator. The badge of a contract uses the same thresholds.
+- **Above rest.** An operator is marked when the lower bound of the 95% Clopper-Pearson interval of
+  its timeout rate on campaign contracts with LLM calls is above the rate of all other operators in
+  the view. With fewer than 10 such votes it is shown as "Too few votes to compare" and is never
+  marked (`MIN_VOTES` in `probe-static/data.js`).
+- **Eligible validator.** In the active list of the staking contract, not in its banned list and
+  with no quarantine in effect. The quarantine records are kept after they expire: one "until epoch
+  N" stops applying when epoch N starts (`inEffect` in `collector/core/staking.js`).
+- **Committee selection check.** The first leader of each campaign transaction against the eligible
+  set in effect at its block, with a chi-square goodness-of-fit test. The eligible set is stored
+  each time its validators change and at each epoch change; a change that is not an epoch change is
+  seen with up to 5 minutes of delay.
+- **Stalled contract.** Five transactions in a row without a vote on any transaction of the
+  contract, the fifth one over 60 minutes old (`STALL_STREAK`, `STALL_SECONDS` in
+  `collector/worker/src/collect.js`). A transaction that stays idle counts as one without a vote.
+  The contract recovers at the next vote.
+- **Campaigns.** Running: one of its transactions had an event in the last 10 minutes. Two
+  campaigns: campaign transactions created more than 30 minutes apart. Failed: the 3-hour slot of
+  the day ended more than 30 minutes ago and no campaign transaction was seen in it
+  (`CAMPAIGN_RUNNING_SECONDS`, `CAMPAIGN_GAP_SECONDS`, `CAMPAIGN_GRACE_SECONDS` in
+  `collector/worker/src/api.js`).
+- **RPC incident.** Opens when two runs of the collector in a row get an answer that is not JSON and
+  closes after five clean runs. Other errors are not counted (`RPC_OPEN_RUNS`, `RPC_CLOSE_RUNS`).
+- **Stale data.** A block of the page is marked when its source has not been updated for 10 minutes
+  ([NET] and [CHAIN]) or 30 hours ([CAMP]) (`STALE_S` in `probe-static/data.js`).
+- **Accepted with execution error.** Versions 4 and 5 counted these apart from the execution result
+  of each transaction. Consensus events do not carry that result, so the page does not separate
+  them: they count as accepted.
