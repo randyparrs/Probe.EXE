@@ -10,6 +10,10 @@
   const TAPE_MS = 60e3, META_MS = 60e3, VIEW_MS = 300e3;   // the API caches the aggregates for 5 minutes
   const STALE_S = { NET: 10 * 60, CHAIN: 10 * 60, CAMP: 30 * 3600 };
   const EXPLORER = 'https://explorer-bradbury.genlayer.com/address/';
+  const EXPLORER_TX = 'https://explorer-bradbury.genlayer.com/tx/', EXPLORER_EPOCH = 'https://explorer-bradbury.genlayer.com/epoch/';
+  // the daily data files: one pair per epoch in the "data" branch of the repository, listed in index.json
+  const DATA_RAW = 'https://raw.githubusercontent.com/randyparrs/Probe.EXE/data/', DATA_TREE = 'https://github.com/randyparrs/Probe.EXE/tree/data';
+  const dataFiles = new Map();   // epoch -> { csv, jsonl }, from index.json
   const HEALTH_TIP = 'Healthy: 90% or more. Degraded: 70 to 90%. Failing: below 70%. Fixed thresholds chosen by Probe.EXE, not a GenLayer standard.';
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
   const get = async path => {
@@ -44,6 +48,12 @@
   const bar = (r, cells = 20) => { const on = Math.round(r * cells); return ['█'.repeat(on), el('span', { class: 'bar-off' }, '█'.repeat(cells - on))]; };
   const ciSpan = (k, n, prefix) => el('span', { class: 'c5', title: '95% Clopper-Pearson interval' }, `${prefix} ${interval(k, n)}`);
   const address = a => el('a', { href: EXPLORER + a, target: '_blank', rel: 'noopener', title: a }, short(a));
+  const txLink = h => el('a', { href: EXPLORER_TX + h, target: '_blank', rel: 'noopener', title: h }, short(h));
+  // Every total links to what it is made of: the data file of its epoch, or the list of files when
+  // the view is not one epoch or its file is not published yet.
+  const viewEpoch = () => { const m = /^epoch:(\d+)$/.exec(view); return m ? +m[1] : null; };
+  const dataUrl = epoch => { const f = epoch == null ? null : dataFiles.get(epoch); return f && /^[\w.-]+$/.test(f.csv || '') ? DATA_RAW + f.csv : DATA_TREE; };
+  const dataLink = (text, epoch = viewEpoch()) => el('a', { href: dataUrl(epoch), target: '_blank', rel: 'noopener', title: 'The transactions behind this number, in the data files.' }, text);
 
   // every element with data-f="key": text, and the time for the local-time tooltip
   function fill(key, text, ts) {
@@ -136,6 +146,7 @@
     const known = Object.values(times).filter(Boolean);
     fill('upd-oldest', known.length ? recent(Math.min(...known), now) : 'no data yet', known.length ? Math.min(...known) : null);
     fill('epoch-n', epoch ? String(epoch.number) : 'unknown');
+    $$('a[data-f="epoch-n"]').forEach(node => { if (epoch) { node.href = EXPLORER_EPOCH + epoch.number; node.title = 'This epoch on the explorer'; } else node.removeAttribute('href'); });
     $$('[data-f="epoch-since-wrap"]').forEach(node => { node.hidden = !(epoch && epoch.since); });
     if (epoch && epoch.since) fill('epoch-since', full(epoch.since), epoch.since);
     fill('epoch-next', !epoch || !epoch.since ? 'unknown' : epoch.next_estimate > now ? 'estimated ' + full(epoch.next_estimate) : 'any time now');
@@ -169,7 +180,7 @@
     const [label, big, tag, barClass] = HEALTH(t.first_rate);
     body(key,
       el('div', { class: 'c32' }, el('span', { class: big }, pct(t.first_rate)), el('span', { class: tag, title: HEALTH_TIP }, label)),
-      el('div', { class: 'c35' }, `(${int(t.first)} / ${int(t.decided)}, `, ciSpan(t.first, t.decided, '95% CI'), ')', t.in_progress ? ` · ${int(t.in_progress)} in progress` : ''),
+      el('div', { class: 'c35' }, '(', dataLink(`${int(t.first)} / ${int(t.decided)}`), ', ', ciSpan(t.first, t.decided, '95% CI'), ')', t.in_progress ? ` · ${int(t.in_progress)} in progress` : ''),
       el('div', { class: barClass }, bar(t.first_rate), ` ${pct(t.first_rate)}`),
       note ? el('div', { class: 'c40' }, note) : null);
     return false;
@@ -200,7 +211,7 @@
         continue;
       }
       barEl.replaceChildren(...bar(t.first_rate), ` ${pct(t.first_rate)}`);
-      count.replaceChildren(`(${int(t.first)} / ${int(t.decided)}, `, ciSpan(t.first, t.decided, '95% CI'), ')', t.in_progress ? ` · ${int(t.in_progress)} in progress` : '');
+      count.replaceChildren('(', dataLink(`${int(t.first)} / ${int(t.decided)}`), ', ', ciSpan(t.first, t.decided, '95% CI'), ')', t.in_progress ? ` · ${int(t.in_progress)} in progress` : '');
     }
     empty['network-wide-first-attempt-acceptance'] = o.network.all.tx === 0;
 
@@ -215,7 +226,7 @@
         el('div', { class: 'c49' }, stacked(llm.votes, 30)),
         el('div', { class: 'c53' }, VOTES.map(([k, text, cls]) => el('div', { class: 'c54' }, el('span', { class: cls }, '█'), el('span', {}, text),
           el('span', { class: 'c55' }, int(llm.votes[k])), el('span', { class: 'c56' }, pct(llm.votes[k] / llm.votes.total))))),
-        el('div', { class: 'c57' }, `${int(llm.votes.total)} votes on contracts with LLM calls`));
+        el('div', { class: 'c57' }, dataLink(int(llm.votes.total)), ' votes on contracts with LLM calls'));
     }
 
     empty['what-goes-wrong-attempts'] = !llm.retries.transactions;
@@ -224,7 +235,7 @@
       body('what-goes-wrong-attempts',
         el('div', { class: 'c58' }, [['Leader timeouts', r.leader_timeouts], ['No majority', r.no_majority], ['Appeals', r.appeals], ['Recomputations', r.recomputations]]
           .map(([text, n]) => el('div', { class: 'c59' }, el('span', {}, text), el('span', {}, int(n))))),
-        el('div', { class: 'c57' }, `Across ${int(r.transactions)} transactions on contracts with LLM calls`));
+        el('div', { class: 'c57' }, 'Across ', dataLink(int(r.transactions)), ' transactions on contracts with LLM calls'));
     }
 
     const t = llm.time_to_acceptance;
@@ -236,7 +247,7 @@
         el('div', { class: 'tta' }, ranges.map(([text, n], i) => el('div', { class: 'tta-row' }, el('span', {}, text),
           el('span', { class: i === 3 ? 'tta-bar tta-slow' : 'tta-bar' }, '▮'.repeat(n ? Math.max(1, Math.round(n / t.accepted * 20)) : 0)),
           el('span', {}, Math.round(n / t.accepted * 100) + '%')))),
-        el('div', { class: 'c57' }, `max ${int(t.max)} s · ${int(t.accepted)} accepted transactions`));
+        el('div', { class: 'c57' }, `max ${int(t.max)} s · `, dataLink(int(t.accepted)), ' accepted transactions'));
     }
 
     empty['operators-timing-out'] = !o.campaign.voters;
@@ -247,14 +258,15 @@
     }
 
     const last = o.last_campaign;
+    const wallet = () => (meta && meta.campaign_wallet ? el('div', { class: 'c57' }, 'Sent by the campaign wallet ', address(meta.campaign_wallet)) : null);
     empty['last-campaign'] = !last;
     if (last && last.status === 'failed') {
       // the bucket of the day passed with no transaction of the campaign wallet
       body('last-campaign', el('div', {}, `Last campaign: expected ${full(last.expected_from).replace(' UTC', '')} to ${clock(new Date(last.expected_until * 1000))}, no transactions `,
-        el('span', { class: 'cs-failed' }, '(failed)')));
+        el('span', { class: 'cs-failed' }, '(failed)')), wallet());
     } else if (last) {
       body('last-campaign', el('div', {}, 'Last campaign: ', el('span', { class: 'c5', 'data-utc': iso(last.started) }, full(last.started)),
-        `, ${int(last.transactions)} transactions `, el('span', { class: last.status === 'running' ? 'cs-running' : 'c64' }, `(${last.status})`)));
+        ', ', dataLink(`${int(last.transactions)} transactions`, last.epoch), ' ', el('span', { class: last.status === 'running' ? 'cs-running' : 'c64' }, `(${last.status})`)), wallet());
       if (window.ProbeUI) window.ProbeUI.localTimes(document.querySelector('fieldset[data-block="last-campaign"]'));
     }
 
@@ -263,7 +275,8 @@
     empty.validators = !v;
     if (v) {
       body('validators', el('div', { class: 'c61' }, el('span', {}, `${int(v.active)} active`), el('span', {}, '·'), el('span', {}, `${int(v.eligible)} eligible`),
-        el('span', {}, '·'), el('span', { class: 'c62' }, `${int(v.quarantined)} quarantined`), el('span', {}, '·'), el('span', { class: 'c62' }, `${int(v.banned)} banned`)));
+        el('span', {}, '·'), el('span', { class: 'c62' }, `${int(v.quarantined)} quarantined`), el('span', {}, '·'), el('span', { class: 'c62' }, `${int(v.banned)} banned`)),
+        el('button', { class: 'c63', type: 'button', 'data-go-tab': '2' }, 'See Operators'));
     }
     return empty;
   }
@@ -305,7 +318,7 @@
         el('div', { class: 'contents', 'data-detail': '', hidden: '' }, el('div', { class: 'c85' },
           el('div', {}, el('div', { class: 'c86' }, 'Series by epoch'), series.length ? series.map(e => el('div', { class: 'c87' }, el('span', {}, `Epoch ${e.epoch}`),
             el('span', {}, bar(e.first_rate, 10), ` ${pct(e.first_rate)}`), el('span', { class: 'c7' }, `(${int(e.first)} / ${int(e.decided)})`))) : el('div', { class: 'c7' }, 'No campaign data yet.')),
-          el('div', { class: 'c88' }, el('div', { class: 'c86' }, 'Fixed inputs'), el('div', { class: 'c89' }, c.input || ''), el('div', { class: 'c35' }, `Transactions in this view: ${int(c.tx)}`)),
+          el('div', { class: 'c88' }, el('div', { class: 'c86' }, 'Fixed inputs'), el('div', { class: 'c89' }, c.input || ''), el('div', { class: 'c35' }, 'Transactions in this view: ', dataLink(int(c.tx)))),
           el('div', {}, el('div', { class: 'c86' }, 'Copies'), copies.map(([name, a, reason]) => el('div', { class: 'c90' },
             el('div', { class: 'c91' }, el('span', {}, name), address(a), reason ? el('span', { class: 'c51' }, 'Retired') : el('span', { class: 'c50' }, 'Active')),
             reason ? el('div', { class: 'c93' }, capital(reason) + '.') : null)))))));
@@ -374,7 +387,7 @@
   }
 
   // C. stalled contracts [NET]
-  const contractName = c => [c.reference ? c.reference + ' ' : null, address(c.contract)];
+  const contractName = c => [c.reference ? c.reference + ' ' : null, address(c.contract), c.last_tx ? [' · last tx ', txLink(c.last_tx)] : null].flat();
   function renderStalled(rows) {
     const desk = document.querySelector('[data-rows="stalled-desk"]'), mob = document.querySelector('[data-rows="stalled-mob"]');
     if (!desk || !mob) return true;
@@ -423,6 +436,29 @@
     }
   }
 
+  // the sentence of an event with everything that can be opened as a link
+  function eventNodes(e) {
+    const d = e.data;
+    const operator = () => [d.moniker ? d.moniker + ' ' : null, address(d.validator), d.moniker ? null : ' (no declared name)'];
+    const contract = () => [d.reference ? d.reference + ' ' : null, address(d.contract)];
+    const listed = list => (list.length ? [' (', list.map((a, i) => [i ? ', ' : null, address(a)]), ')'] : null);
+    const epochLink = n => el('a', { href: EXPLORER_EPOCH + n, target: '_blank', rel: 'noopener', title: 'This epoch on the explorer' }, `Epoch ${n}`);
+    const parts = (() => {
+      switch (e.type) {
+        case 'epoch': return [epochLink(d.epoch), ' started.', d.previous_seconds ? ` Epoch ${d.epoch - 1} lasted ${lasted(d.previous_seconds)}.` : null];
+        case 'eligible': return [`Eligible set: +${int(d.joined.length)} joined`, listed(d.joined), `, -${int(d.left.length)} left`, listed(d.left), ` (${int(d.eligible)} eligible).`];
+        case 'quarantined': return [operator(), ' quarantined.'];
+        case 'banned': return [operator(), d.until ? ` banned until epoch ${d.until}.` : ' banned permanently.'];
+        case 'stalled': return [contract(), `: stalled since ${full(d.since)}.`];
+        case 'recovered': return [contract(), `: recovered after ${int(d.transactions)} transactions without a vote`, d.tx ? [', with the vote on ', txLink(d.tx)] : null, '.'];
+        case 'campaign': return [`Campaign ${d.id}: `, dataLink(`${int(d.transactions)} transactions`, d.epoch), `, ${d.status}.`,
+          meta && meta.campaign_wallet ? [' Wallet ', address(meta.campaign_wallet), '.'] : null];
+        default: return [eventText(e)];
+      }
+    })();
+    return parts.flat(Infinity).filter(p => p != null);
+  }
+
   function eventRow(e) {
     const text = eventText(e), tag = EV_TAG[e.type] || '', src = EV_SOURCE[e.type];
     const epoch = e.type === 'epoch' ? e.data.epoch : null;
@@ -430,12 +466,14 @@
       el('div', { class: 'contents', 'data-only': 'desk' }, el('div', { class: 'c170' },
         el('span', { class: 'c171', 'data-utc': iso(e.ts) }, full(e.ts)),
         el('span', { class: 'c7' }, tag),
-        epoch == null ? el('span', {}, text) : el('button', { class: 'c177', type: 'button', 'data-toggle': '' }, el('span', { 'data-sign': '' }, '[+]'), ' ' + text),
+        epoch == null ? el('span', {}, eventNodes(e))
+          : el('span', {}, el('button', { class: 'c177', type: 'button', 'data-toggle': '' }, el('span', { 'data-sign': '' }, '[+]'), ' ' + text), ' ',
+            el('a', { class: 'c172', href: EXPLORER_EPOCH + epoch, target: '_blank', rel: 'noopener', title: 'This epoch on the explorer' }, '[explorer]')),
         el('span', { class: 'c172', title: SOURCE_TIP[src] }, src ? `[${src}]` : ''))),
       el('div', { class: 'contents', 'data-only': 'mob' }, el('button', { class: 'c173', type: 'button', 'data-toggle': '' },
         el('span', { class: 'c174' }, `${full(e.ts)} ${tag}`), el('span', { class: 'c175', 'data-when-closed': '' }, text))),
       el('div', { class: 'contents', 'data-detail': '', hidden: '' }, el('div', { class: 'c178' },
-        el('div', { 'data-only': 'mob' }, text),
+        el('div', { 'data-only': 'mob' }, eventNodes(e)),
         epoch == null ? null : el('div', { class: 'contents', 'data-epoch-summary': '' }, el('div', {}, 'Loading...')))));
   }
 
@@ -557,7 +595,7 @@
 
       mob.append(el('div', { ...data, class: 'c94' },
         el('div', { class: 'c95' }, el('span', { class: o.moniker ? 'c141' : 'c152' }, name), el('span', { class: 'c79' }, rate == null ? 'n/a' : pct(rate))),
-        el('div', { class: 'c96' }, el('span', {}, short(o.address)), el('span', {}, `timeout with LLM, n = ${int(llm.votes)}`)),
+        el('div', { class: 'c96' }, el('span', {}, address(o.address)), el('span', {}, `timeout with LLM, n = ${int(llm.votes)}`)),
         el('button', { class: 'c97', type: 'button', 'data-toggle': '' }, el('span', { 'data-sign': '' }, '[+]'), ' Details'),
         el('div', { class: 'contents', 'data-detail': '', hidden: '' }, el('div', { class: 'c153' },
           el('div', {}, 'Status: ', status()),
@@ -586,7 +624,7 @@
       pEl.title = `${int(leaders)} campaign transactions, by first leader, against the eligible set in effect at each one (validators active, not banned and not quarantined): ${rows.length - outside} validators, ${fit.df} degrees of freedom.`
         + (outside ? ` ${outside} led without being in the eligible set and are left out of the test.` : '');
       box.replaceChildren(...rows.map((o, i) => el('div', { class: i % 2 ? 'c165' : 'c162' },
-        el('span', { class: o.moniker ? 'c163' : 'c166', title: o.address }, (o.moniker || '(no declared name)') + ' ', el('span', { class: 'c164' }, short(o.address))),
+        el('span', { class: o.moniker ? 'c163' : 'c166', title: o.address }, (o.moniker || '(no declared name)') + ' ', el('span', { class: 'c164' }, address(o.address))),
         el('span', { class: 'c55' }, pct(o.leader.expected / leaders)), el('span', { class: 'c55' }, int(o.leader.first)), el('span', { class: 'c55' }, o.leader.expected.toFixed(1)))));
     }
     return { 'votes-per-operator': !list.some(o => o.network.votes || o.network.led), 'committee-selection-check': !enough };
@@ -675,12 +713,12 @@
 
   // ---- How it works: data downloads. The list is the index that the daily export writes in the
   // "data" branch of the repository: { files: [{ epoch, csv, jsonl }] }, one entry per epoch that exists.
-  const DATA_RAW = 'https://raw.githubusercontent.com/randyparrs/Probe.EXE/data/';
   async function loadDownloads() {
     const box = document.querySelector('[data-downloads]');
     if (!box) return;
     try {
       const { files } = await get(DATA_RAW + 'index.json');
+      for (const f of files) dataFiles.set(f.epoch, f);
       const names = files.sort((a, b) => b.epoch - a.epoch).flatMap(f => [f.csv, f.jsonl]).filter(name => /^[\w.-]+$/.test(name || ''));
       if (!names.length) throw new Error('empty');
       box.replaceChildren(...names.map(name => el('a', { href: DATA_RAW + name, target: '_blank', rel: 'noopener' }, name)));
@@ -698,8 +736,7 @@
 
   const every = (ms, fn) => setInterval(() => { if (!document.hidden) fn(); }, ms);
   loadTape(); every(TAPE_MS, loadTape);
-  loadMeta().then(loadView);
+  Promise.all([loadMeta(), loadDownloads()]).then(loadView);
   every(META_MS, loadMeta);
   every(VIEW_MS, loadView);
-  loadDownloads();
 })();

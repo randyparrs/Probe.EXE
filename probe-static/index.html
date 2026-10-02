@@ -23,7 +23,7 @@
       <svg class="bar-logo" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="Probe.EXE"><path fill="#39d353" d="M1 1h14v3H1zM1 4h1v11H1zM14 4h1v11h-1zM1 14h14v1H1zM5 6h5v1H5zM5 6h2v7H5zM9 7h2v2H9zM5 9h5v1H5z"/><path fill="#121813" d="M10 2h1v1h-1zM12 2h1v1h-1z"/></svg>
       <div class="bar-items">
       <span>Updated: Network <span class="c5" data-f="upd-net">...</span> · Chain <span class="c5" data-f="upd-chain">...</span> · Campaign <span class="c5" data-f="upd-camp">...</span></span>
-      <span>Epoch <span data-f="epoch-n">...</span><span data-f="epoch-since-wrap" hidden> since <span class="c5" data-f="epoch-since"></span></span></span>
+      <span>Epoch <a data-f="epoch-n" target="_blank" rel="noopener">...</a><span data-f="epoch-since-wrap" hidden> since <span class="c5" data-f="epoch-since"></span></span></span>
       <span class="c5" title="Epochs last at least 24 h but can run longer (epoch 164 lasted 3 days 21 h).">Next epoch change: <span data-f="epoch-next">...</span></span>
       <span class="c6"><span class="c7">Sources:</span><span class="c5" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET] Network</span><span>·</span><span class="c5" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP] Campaign</span><span>·</span><span class="c5" title="Read directly from the staking contract.">[CHAIN] Chain</span></span>
       </div>
@@ -34,7 +34,7 @@
     <div class="contents" data-panel="sb" hidden>
       <div class="c11">
         <span>Updated: Network <span data-f="upd-net">...</span> · Chain <span data-f="upd-chain">...</span> · Campaign <span data-f="upd-camp">...</span></span>
-        <span>Epoch <span data-f="epoch-n">...</span><span data-f="epoch-since-wrap" hidden> since <span data-f="epoch-since"></span></span></span>
+        <span>Epoch <a data-f="epoch-n" target="_blank" rel="noopener">...</a><span data-f="epoch-since-wrap" hidden> since <span data-f="epoch-since"></span></span></span>
         <span>Next epoch change: <span data-f="epoch-next">...</span></span>
         <span class="c7">Epochs last at least 24 h but can run longer (epoch 164 lasted 3 days 21 h).</span>
         <span>Sources: [NET] Network · [CAMP] Campaign · [CHAIN] Chain</span>
@@ -490,6 +490,7 @@
         <legend class="c30">4. Verify</legend>
         <div class="c210">
           <div class="c211"><a href="https://explorer-bradbury.genlayer.com" target="_blank" rel="noopener">Bradbury explorer</a><a href="https://github.com/randyparrs/Probe.EXE" target="_blank" rel="noopener">Source code</a><a href="https://github.com/randyparrs/probe-exe-preregistration" target="_blank" rel="noopener">Pre-registration repository</a><a href="https://github.com/randyparrs/probe-exe-preregistration#verifying-the-hashes" target="_blank" rel="noopener">Hash verification guide</a></div>
+          <div>Every address and transaction on this page opens in the Bradbury explorer, and every epoch opens its page there. Every count of transactions or votes links to the data file of its epoch, where the rows behind it can be read.</div>
           <div><div class="c7">Data downloads (CSV and JSON Lines), one file per epoch, from the <a href="https://github.com/randyparrs/Probe.EXE/tree/data" target="_blank" rel="noopener">data branch</a> of the repository</div><div class="c211" data-downloads>Loading...</div></div>
           <div>Campaign wallet: <a href="https://explorer-bradbury.genlayer.com/address/0xe8EFc2E93bCBEDaAb435873fF873e74745A4a4eF" target="_blank" rel="noopener" title="0xe8EFc2E93bCBEDaAb435873fF873e74745A4a4eF">0xe8EF...a4eF</a></div>
           <div><div class="c7">Reference contract addresses: four contracts, seven deployed copies</div>
