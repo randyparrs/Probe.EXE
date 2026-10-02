@@ -460,7 +460,7 @@ test("a contract with five transactions in a row without a vote is stalled an ho
   assert.equal((await run(112, detected)).error, null);            // a run with no events of the contract
   assert.deepEqual(log(), [[detected, "stalled", { contract: C, since: T0 + 101 }]]);
   assert.deepEqual(stalledContracts(await store.stalled(0, detected + 1)),
-    [{ contract: C, reference: null, llm: "na", since: T0 + 101, transactions: 5, status: "no_progress", recovered: null }]);
+    [{ contract: C, reference: null, llm: "na", since: T0 + 101, transactions: 5, status: "stalled", recovered: null }]);
   assert.equal((await run(113, detected + 60)).error, null);       // detected once
   assert.equal(log().length, 1);
 

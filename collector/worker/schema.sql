@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS leader_draw (
 ) WITHOUT ROWID;
 
 -- what happened, for the Events section: changes of the eligible set, quarantines, bans, and
--- contracts that stop or resume making progress. Epoch changes, campaigns and RPC incidents are
+-- contracts that stall or recover. Epoch changes, campaigns and RPC incidents are
 -- not stored here: the API derives them from epochs, tx and runs.
 CREATE TABLE IF NOT EXISTS log (
   id   INTEGER PRIMARY KEY,

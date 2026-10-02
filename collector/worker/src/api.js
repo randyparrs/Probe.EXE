@@ -158,7 +158,7 @@ export function stalledContracts(rows) {
   return rows.map((r) => ({
     contract: r.address, reference: r.ref_name ?? null, llm: r.llm ?? null, since: r.since_ts,
     transactions: r.recovered_ts == null ? r.streak : r.stalled_tx,
-    status: r.recovered_ts == null ? "no_progress" : "recovered", recovered: r.recovered_ts ?? null,
+    status: r.recovered_ts == null ? "stalled" : "recovered", recovered: r.recovered_ts ?? null,
   }));
 }
 
