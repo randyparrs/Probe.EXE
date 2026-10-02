@@ -1,0 +1,68 @@
+name: Daily data export
+
+# Writes the data files of the "data" branch: one CSV and one JSON Lines file per epoch and an
+# index.json (collector/export/export.mjs). The files are built from the public API of the page,
+# so anyone can reproduce them; no credential is needed to read the data.
+#
+# Trigger: an external cron (cron-job.org) calls the workflow_dispatch API once a day, like the
+# campaign. The epoch in progress is rewritten every day. A closed epoch is rewritten only when
+# its rows changed, and then the commit message says what changed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      page_url:
+        description: "Where the page is served"
+        type: string
+        default: "https://probe-exe.pages.dev"
+
+concurrency:
+  group: probe-exe-export
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # the "data" branch in its own directory; the first run creates it with no history in common
+      - name: Data branch
+        run: |
+          if git fetch origin data:data 2>/dev/null; then
+            git worktree add data-branch data
+          else
+            git worktree add --detach data-branch
+            git -C data-branch checkout --orphan data
+            git -C data-branch rm -rf --quiet .
+          fi
+
+      - name: Export
+        run: node collector/export/export.mjs data-branch
+        env:
+          PAGE_URL: ${{ inputs.page_url || 'https://probe-exe.pages.dev' }}
+          COMMIT_MESSAGE_FILE: ${{ runner.temp }}/commit-message.txt
+
+      - name: Commit and push
+        run: |
+          if [ ! -f "$RUNNER_TEMP/commit-message.txt" ]; then
+            echo "nothing changed"
+            exit 0
+          fi
+          cd data-branch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit --quiet -F "$RUNNER_TEMP/commit-message.txt"
+          git push origin data
