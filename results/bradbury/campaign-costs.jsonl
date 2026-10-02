@@ -1,0 +1,23 @@
+{"at":"2026-09-27T19:57:10.221Z","event":"run-start","contracts":["wizard","company","tribunal"],"n":50,"signerWei":"101829763346060431450"}
+{"at":"2026-09-27T20:21:18.695Z","event":"run-end","contracts":["wizard","company","tribunal"],"signerWei":"50787528383784370150","deltaGen":51.04223496227606,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-27T20:51:57.889Z","event":"run-start","contracts":["tribunal"],"n":50,"signerWei":"50784650297868920650"}
+{"at":"2026-09-27T21:06:58.289Z","event":"run-end","contracts":["tribunal"],"signerWei":"759649832934367100","deltaGen":50.02500046493455,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-27T22:01:40.236Z","event":"run-start","contracts":["dvA","dvB","dvC"],"n":50,"signerWei":"756873039240269300"}
+{"at":"2026-09-27T22:11:09.822Z","event":"run-end","contracts":["dvA","dvB","dvC"],"signerWei":"734720745552941300","deltaGen":0.022152293687328,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-27T22:34:08.155Z","event":"run-start","contracts":["wizard","company","dvA"],"n":50,"signerWei":"734720745552941300"}
+{"at":"2026-09-27T22:51:01.957Z","event":"run-end","contracts":["wizard","company","dvA"],"signerWei":"712981018569750650","deltaGen":0.021739726983190648,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-28T13:39:33.406Z","event":"run-start","contracts":["wizard","company","dvA"],"n":10,"signerWei":"712981018569750650"}
+{"at":"2026-09-28T14:18:28.662Z","event":"run-end","contracts":["wizard","company","dvA"],"signerWei":"709227516392523950","deltaGen":0.0037535021772267,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-28T14:44:30.768Z","event":"run-start","contracts":["wizard","company","dvB","dvA"],"n":50,"signerWei":"20709227516392523950"}
+{"at":"2026-09-28T15:34:01.177Z","event":"run-end","contracts":["wizard","company","dvB","dvA"],"signerWei":"20681744689136734300","deltaGen":0.027482827255789648,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-28T16:09:00.312Z","event":"run-start","contracts":["wizard","company","dvB","dvA"],"n":50,"signerWei":"20681744689136734300"}
+{"at":"2026-09-28T23:00:07.227Z","event":"run-start","contracts":["wizard","company","dvB","dvA"],"n":50,"signerWei":"20681744689136734300"}
+{"at":"2026-09-28T23:38:36.374Z","event":"run-end","contracts":["wizard","company","dvB","dvA"],"signerWei":"20658517899433229350","deltaGen":0.023226789703504953,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-29T13:25:12.152Z","event":"run-start","contracts":["wizard","company","dvB","dvA"],"n":50,"signerWei":"20658517899433229350"}
+{"at":"2026-09-29T16:46:20.411Z","event":"run-end","contracts":["wizard","company","dvB","dvA"],"signerWei":"20632750084962980350","deltaGen":0.025767814470249,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-29T20:46:26.534Z","event":"run-start","contracts":["wizard","company","dvB","dvA"],"n":50,"signerWei":"20632516065767364100"}
+{"at":"2026-09-29T21:31:39.345Z","event":"run-end","contracts":["wizard","company","dvB","dvA"],"signerWei":"20605786362097184350","deltaGen":0.026729703670179752,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-30T01:31:04.388Z","event":"run-start","contracts":["wizard","company","dvB","dvA"],"n":50,"signerWei":"20605665912502305250"}
+{"at":"2026-09-30T02:38:09.503Z","event":"run-end","contracts":["wizard","company","dvB","dvA"],"signerWei":"20574439501604126350","deltaGen":0.0312264108981789,"note":"includes tribunal bonds still locked or not yet withdrawn"}
+{"at":"2026-09-30T13:25:06.815Z","event":"run-start","contracts":["wizard","company","dvB","dvA"],"n":50,"signerWei":"20574322267732526050"}
+{"at":"2026-09-30T16:09:39.720Z","event":"run-end","contracts":["wizard","company","dvB","dvA"],"signerWei":"20551440473692189300","deltaGen":0.022881794040336752,"note":"includes tribunal bonds still locked or not yet withdrawn"}

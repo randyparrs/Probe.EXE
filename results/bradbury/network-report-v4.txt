@@ -1,0 +1,97 @@
+== window: 2026-09-29T20:47:59.336Z to 2026-09-29T21:28:28.210Z (sending of the first and the last tx), campaign v4
+   network snapshot run-start 2026-09-29T20:47:57.806Z: epoch 166, 32 active, 27 eligible
+   network snapshot run-end 2026-09-29T21:31:38.976Z: epoch 166, 32 active, 27 eligible
+   eligible set #7 2026-09-29T20:47:59.323Z: epoch 166, 27 eligible of 32 active
+
+== wizard (LLM): 50 valid tx
+  accepted at first attempt (v5) 36/50 = 72.0%  (95% CP 57.5% - 83.8%); after retry 13; no consensus 1
+  retry causes: {'LEADER_TIMEOUT': 16, 'votes, unclassified': 1}
+  content disagreement 0/251 = 0.0%  (95% CP 0.0% - 1.5%); execution divergence 48/251 = 19.1%  (95% CP 14.4% - 24.5%)
+  votes: {'AGREE': 203, 'TIMEOUT': 45, 'DV type 1': 3}
+  latency to ACCEPTED: median 44 s, p90 61 s, max 99 s (n=49)
+    epoch 166: median 44 s, p90 61 s, max 99 s (n=49)
+
+== company (LLM): 39 valid tx, 11 invalid [7, 12, 17, 18, 19, 24, 26, 34, 39, 44, 45]
+  accepted at first attempt (v5) 13/39 = 33.3%  (95% CP 19.1% - 50.2%); after retry 16; no consensus 10
+  retry causes: {'content': 16, 'LEADER_TIMEOUT': 16, 'votes, unclassified': 21, 'unclassified': 8, 'VALIDATORS_TIMEOUT': 2, 'DV type 2': 2}
+  content disagreement 28/373 = 7.5%  (95% CP 5.0% - 10.7%); execution divergence 191/373 = 51.2%  (95% CP 46.0% - 56.4%)
+  votes: {'AGREE': 154, 'TIMEOUT': 71, 'DV type 1': 69, 'DV type 2': 45, 'DISAGREE': 28, 'DV untyped': 6}
+  latency to ACCEPTED: median 66 s, p90 125 s, max 227 s (n=29)
+    epoch 166: median 66 s, p90 125 s, max 227 s (n=29)
+
+== dvB (LLM): 50 valid tx
+  accepted at first attempt (v5) 37/50 = 74.0%  (95% CP 59.7% - 85.4%); after retry 12; no consensus 1
+  retry causes: {'LEADER_TIMEOUT': 15, 'VALIDATORS_TIMEOUT': 1}
+  content disagreement 0/261 = 0.0%  (95% CP 0.0% - 1.4%); execution divergence 53/261 = 20.3%  (95% CP 15.6% - 25.7%)
+  votes: {'AGREE': 208, 'TIMEOUT': 53}
+  latency to ACCEPTED: median 20 s, p90 29 s, max 47 s (n=49)
+    epoch 166: median 20 s, p90 29 s, max 47 s (n=49)
+
+== dvA (control without LLM): 50 valid tx
+  accepted at first attempt (v5) 50/50 = 100.0%  (95% CP 92.9% - 100.0%); after retry 0; no consensus 0
+  retry causes: {}
+  content disagreement 0/250 = 0.0%  (95% CP 0.0% - 1.5%); execution divergence 0/250 = 0.0%  (95% CP 0.0% - 1.5%)
+  votes: {'AGREE': 250}
+  latency to ACCEPTED: median 11 s, p90 14 s, max 18 s (n=50)
+    epoch 166: median 11 s, p90 14 s, max 18 s (n=50)
+
+== operator health (internal): with LLM | without LLM
+  BlackNodes                 LLM: votes  30 TIMEOUT  30 DV   0 | leader  14 timeouts  14 || no LLM: votes  14 divergence  0  TIMEOUT high (rest 16.3 %); fails as leader
+  Blockscope                 LLM: votes  41 TIMEOUT  41 DV   0 | leader   6 timeouts   6 || no LLM: votes   9 divergence  0  TIMEOUT high (rest 15.2 %); fails as leader
+  Brightlystake              LLM: votes  32 TIMEOUT  32 DV   0 | leader   8 timeouts   8 || no LLM: votes  10 divergence  0  TIMEOUT high (rest 16.1 %); fails as leader
+  Neturion Global            LLM: votes  29 TIMEOUT  29 DV   0 | leader  10 timeouts  10 || no LLM: votes  10 divergence  0  TIMEOUT high (rest 16.4 %); fails as leader
+  StakingCabin               LLM: votes  34 TIMEOUT  34 DV   0 | leader   9 timeouts   9 || no LLM: votes   7 divergence  0  TIMEOUT high (rest 15.9 %); fails as leader
+  Coinage x DAIC             LLM: votes  44 TIMEOUT   3 DV   4 | leader  13 timeouts   0 || no LLM: votes  10 divergence  0  
+  SenseiNode                 LLM: votes  21 TIMEOUT   0 DV   6 | leader   7 timeouts   0 || no LLM: votes  10 divergence  0  
+  pops-team                  LLM: votes  24 TIMEOUT   0 DV   5 | leader   6 timeouts   0 || no LLM: votes  15 divergence  0  
+  01node                     LLM: votes  27 TIMEOUT   0 DV   0 | leader   8 timeouts   0 || no LLM: votes  13 divergence  0  
+  HusoNode                   LLM: votes  27 TIMEOUT   0 DV   0 | leader   9 timeouts   0 || no LLM: votes  10 divergence  0  
+  Noders                     LLM: votes  27 TIMEOUT   0 DV   3 | leader   5 timeouts   0 || no LLM: votes   9 divergence  0  
+  PathrockNetwork            LLM: votes  27 TIMEOUT   0 DV   4 | leader   6 timeouts   0 || no LLM: votes   6 divergence  0  
+  Finoa Consensus Services   LLM: votes  28 TIMEOUT   0 DV   9 | leader  10 timeouts   0 || no LLM: votes   7 divergence  0  DV high (rest 13.3 %)
+  genlayerlabs-validator-2   LLM: votes  29 TIMEOUT   0 DV   5 | leader   6 timeouts   0 || no LLM: votes   7 divergence  0  
+  genlayerlabs-validator-6   LLM: votes  30 TIMEOUT   0 DV   1 | leader   7 timeouts   0 || no LLM: votes  10 divergence  0  
+  Synergy_Nodes              LLM: votes  32 TIMEOUT   0 DV   5 | leader  10 timeouts   0 || no LLM: votes   7 divergence  0  
+  RubyNodes                  LLM: votes  33 TIMEOUT   0 DV   2 | leader  10 timeouts   0 || no LLM: votes  17 divergence  0  
+  Stakely-Bradbury           LLM: votes  33 TIMEOUT   0 DV   3 | leader   6 timeouts   0 || no LLM: votes   7 divergence  0  
+  AURORAX                    LLM: votes  34 TIMEOUT   0 DV  14 | leader   8 timeouts   0 || no LLM: votes   9 divergence  0  DV high (rest 12.8 %)
+  FairStaking                LLM: votes  34 TIMEOUT   0 DV  10 | leader   2 timeouts   0 || no LLM: votes   9 divergence  0  DV high (rest 13.3 %)
+  Validatrium Bradbury       LLM: votes  35 TIMEOUT   0 DV  11 | leader  11 timeouts   0 || no LLM: votes  14 divergence  0  DV high (rest 13.2 %)
+  5ElementsNodes             LLM: votes  37 TIMEOUT   0 DV   7 | leader   8 timeouts   0 || no LLM: votes   4 divergence  0  
+  genlayerlabs-validator-3   LLM: votes  37 TIMEOUT   0 DV   6 | leader  12 timeouts   0 || no LLM: votes   6 divergence  0  
+  genlayerlabs-validator-4   LLM: votes  37 TIMEOUT   0 DV   7 | leader   7 timeouts   0 || no LLM: votes   6 divergence  0  
+  ITRocket                   LLM: votes  39 TIMEOUT   0 DV   8 | leader  10 timeouts   0 || no LLM: votes   8 divergence  0  
+  Encapsulate                LLM: votes  42 TIMEOUT   0 DV  10 | leader   9 timeouts   0 || no LLM: votes   5 divergence  0  
+  Unity Nodes                LLM: votes  42 TIMEOUT   0 DV   3 | leader  12 timeouts   0 || no LLM: votes  11 divergence  0  
+
+== committee model (hypothesis: leader = first draw, probability proportional to weight)
+  189 tx; eligible set per tx in 189, run-start snapshot for the rest
+  Blockscope                 expected   4.5 %  observed   6/189 =   3.2 % (CI 1.2-6.8)
+  Synergy_Nodes              expected   4.5 %  observed   6/189 =   3.2 % (CI 1.2-6.8)
+  BlackNodes                 expected   4.5 %  observed  13/189 =   6.9 % (CI 3.7-11.5)
+  Finoa Consensus Services   expected   4.2 %  observed   8/189 =   4.2 % (CI 1.8-8.2)
+  genlayerlabs-validator-4   expected   4.2 %  observed   4/189 =   2.1 % (CI 0.6-5.3)
+  genlayerlabs-validator-6   expected   4.1 %  observed   7/189 =   3.7 % (CI 1.5-7.5)
+  SenseiNode                 expected   4.1 %  observed   8/189 =   4.2 % (CI 1.8-8.2)
+  ITRocket                   expected   4.0 %  observed   7/189 =   3.7 % (CI 1.5-7.5)
+  FairStaking                expected   3.9 %  observed   2/189 =   1.1 % (CI 0.1-3.8)
+  Unity Nodes                expected   3.9 %  observed   9/189 =   4.8 % (CI 2.2-8.8)
+  RubyNodes                  expected   3.9 %  observed  13/189 =   6.9 % (CI 3.7-11.5)
+  pops-team                  expected   3.9 %  observed   5/189 =   2.6 % (CI 0.9-6.1)
+  AURORAX                    expected   3.8 %  observed   7/189 =   3.7 % (CI 1.5-7.5)
+  Brightlystake              expected   3.8 %  observed   7/189 =   3.7 % (CI 1.5-7.5)
+  Noders                     expected   3.7 %  observed   4/189 =   2.1 % (CI 0.6-5.3)
+  StakingCabin               expected   3.7 %  observed   6/189 =   3.2 % (CI 1.2-6.8)
+  Stakely-Bradbury           expected   3.5 %  observed   5/189 =   2.6 % (CI 0.9-6.1)
+  01node                     expected   3.5 %  observed   8/189 =   4.2 % (CI 1.8-8.2)
+  Validatrium Bradbury       expected   3.5 %  observed   9/189 =   4.8 % (CI 2.2-8.8)
+  Coinage x DAIC             expected   3.5 %  observed  10/189 =   5.3 % (CI 2.6-9.5)
+  genlayerlabs-validator-2   expected   3.4 %  observed   3/189 =   1.6 % (CI 0.3-4.6)
+  Neturion Global            expected   3.4 %  observed  11/189 =   5.8 % (CI 2.9-10.2)
+  5ElementsNodes             expected   3.3 %  observed   7/189 =   3.7 % (CI 1.5-7.5)
+  Encapsulate                expected   3.1 %  observed   4/189 =   2.1 % (CI 0.6-5.3)
+  genlayerlabs-validator-3   expected   3.0 %  observed   8/189 =   4.2 % (CI 1.8-8.2)
+  PathrockNetwork            expected   2.7 %  observed   4/189 =   2.1 % (CI 0.6-5.3)
+  HusoNode                   expected   2.6 %  observed   8/189 =   4.2 % (CI 1.8-8.2)
+  chi-square 29.2, df 26, p = 0.304; expected outside the CI for 1 operators
+  (small expected counts: the chi-square is indicative only if n x expected < 5 for many operators)

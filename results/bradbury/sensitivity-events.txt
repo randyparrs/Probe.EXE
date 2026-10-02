@@ -1,0 +1,45 @@
+== 1. Rows that polling cut at its 45 min limit (no_consensus_watch_limit), V2 to V6
+  v3 wizard   #30 polling: APPEAL_COMMITTING  -> events/chain: none  (events: unknown; chain: FINALIZED/IDLE)
+  v3 wizard   #35 polling: PROPOSING          -> events/chain: none  (events: pending; chain: FINALIZED/IDLE)
+  v3 wizard   #49 polling: PROPOSING          -> events/chain: none  (events: pending; chain: FINALIZED/IDLE)
+  v3 company  #14 polling: COMMITTING         -> events/chain: none  (events: pending; chain: FINALIZED/IDLE)
+  v3 company  #16 polling: PROPOSING          -> events/chain: none  (events: none; chain: None/None)
+  v3 company  #18 polling: APPEAL_COMMITTING  -> events/chain: none  (events: unknown; chain: FINALIZED/IDLE)
+  v5 company  #29 polling: COMMITTING         -> events/chain: none  (events: none; chain: None/None)
+  v6 wizard   #43 polling: APPEAL_COMMITTING  -> events/chain: none  (events: unknown; chain: FINALIZED/IDLE)
+  v6 wizard   #49 polling: PROPOSING          -> events/chain: none  (events: pending; chain: FINALIZED/IDLE)
+  v6 company  #34 polling: APPEAL_COMMITTING  -> events/chain: none  (events: unknown; chain: FINALIZED/IDLE)
+  v6 company  #37 polling: APPEAL_COMMITTING  -> events/chain: none  (events: unknown; chain: FINALIZED/IDLE)
+  v6 company  #47 polling: PROPOSING          -> events/chain: none  (events: none; chain: None/None)
+  v6 company  #48 polling: APPEAL_COMMITTING  -> events/chain: none  (events: none; chain: None/None)
+  total 13: none 13
+
+== 2. Rows where polling (v5) and events differ, V2 to V6
+  v3 company  #13 v5 first -> events retry (proposals 1, leader timeouts 0, rotations 1, appeals 0, validators timeouts 0)
+  v3 dvB      #35 v5 first -> events retry (proposals 1, leader timeouts 1, rotations 0, appeals 0, validators timeouts 0)
+  v3 dvB      #36 v5 first -> events retry (proposals 1, leader timeouts 1, rotations 0, appeals 0, validators timeouts 0)
+  v4 dvB      #47 v5 first -> events retry (proposals 1, leader timeouts 1, rotations 0, appeals 0, validators timeouts 0)
+  v6 company  #33 v5 first -> events retry (proposals 1, leader timeouts 0, rotations 1, appeals 0, validators timeouts 0)
+  v6 company  #44 v5 first -> events retry (proposals 2, leader timeouts 0, rotations 1, appeals 0, validators timeouts 0)
+  v6 dvB      #13 v5 first -> events retry (proposals 2, leader timeouts 1, rotations 0, appeals 1, validators timeouts 1)
+  agree 721 of 728; differences: first->retry 7
+
+== 3. Criterion with the first attempt counted from events (same n, same pre-registered predictions)
+  v2 wizard   C  80.8 | v5 40/50 =  80.0 % inside  | events 40/50 =  80.0 % inside
+  v2 company  C  55.9 | v5 26/50 =  52.0 % inside  | events 26/50 =  52.0 % inside
+  v2 dvB      C  82.9 | v5 41/50 =  82.0 % inside  | events 41/50 =  82.0 % inside
+  v3 wizard   C  76.2 | v5 33/50 =  66.0 % inside  | events 33/50 =  66.0 % inside
+  v3 company  C  58.6 | v5 10/45 =  22.2 % OUTSIDE | events 9/45 =  20.0 % OUTSIDE
+  v3 dvB      C  76.2 | v5 45/50 =  90.0 % OUTSIDE | events 43/50 =  86.0 % inside   <-- changes
+  v4 wizard   C  73.9 | v5 36/50 =  72.0 % inside  | events 36/50 =  72.0 % inside
+  v4 company  C  37.8 | v5 13/39 =  33.3 % inside  | events 13/39 =  33.3 % inside
+  v4 dvB      C  74.3 | v5 37/50 =  74.0 % inside  | events 36/50 =  72.0 % inside
+  v5 wizard   C  77.2 | v5 41/50 =  82.0 % inside  | events 41/50 =  82.0 % inside
+  v5 company  C  38.9 | v5 10/44 =  22.7 % OUTSIDE | events 10/44 =  22.7 % OUTSIDE
+  v5 dvB      C  77.7 | v5 43/50 =  86.0 % inside  | events 43/50 =  86.0 % inside
+  v6 wizard   C  77.1 | v5 36/50 =  72.0 % inside  | events 36/50 =  72.0 % inside
+  v6 company  C  32.8 | v5 31/50 =  62.0 % OUTSIDE | events 29/50 =  58.0 % OUTSIDE
+  v6 dvB      C  77.4 | v5 42/50 =  84.0 % inside  | events 41/50 =  82.0 % inside
+  validation (v5, polling): 11/15 inside  (needs 12); MAE C 9.5 vs naive 10.0 -> does NOT pass
+  sensitivity (first attempt from events): 12/15 inside  (needs 12); MAE C 9.1 vs naive 9.7 -> passes
+  (the naive prediction is the pre-registered one, v5 average of the previous windows; it is not recomputed)

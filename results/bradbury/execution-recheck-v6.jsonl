@@ -1,0 +1,3 @@
+{"contract":"company","index":8,"hash":"0xe62ed8b8affe49f4f562d57b7df1061114df152ccfc87aa1218c7f178f2695f1","at":"2026-09-30T16:10:10.553Z","outcome":"no_consensus","executionRecorded":"FINISHED_WITH_ERROR","executionNow":"FINISHED_WITH_ERROR","statusNow":"FINALIZED"}
+{"contract":"company","index":49,"hash":"0xe6fc0691dca07c7ac8115dac01f2d893e37caa64d838b2b21255e85bff9e1c93","at":"2026-09-30T16:10:11.053Z","outcome":"no_consensus","executionRecorded":"NOT_VOTED","executionNow":"NOT_VOTED","statusNow":"CANCELED"}
+{"contract":"wizard","index":49,"hash":"0x0cbb30cb6db56099b5135b7eaa9a15f42371adab65f37d8637aaceb6f246cd0b","at":"2026-09-30T16:10:11.542Z","outcome":"no_consensus_watch_limit","executionNow":"NOT_VOTED","statusNow":"UNDETERMINED"}
