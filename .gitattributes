@@ -4,3 +4,8 @@
 # Published data keeps its exact bytes: the pre-registration lists the SHA-256 of these files
 results/** -text
 harness/** -text
+
+# Pre-registered code keeps its exact bytes too (several files have CRLF line endings)
+contracts/** -text
+scripts/** -text
+tests/** -text
