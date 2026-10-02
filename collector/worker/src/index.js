@@ -82,6 +82,7 @@ export default {
         epoch: m.epoch == null ? null : { number: m.epoch, since, next_estimate: since == null ? null : since + EPOCH_MIN_SECONDS },
         epochs: numbers.map((e) => ({ epoch: e, since: starts.get(e) ?? null })),
         rpc: { state: m.rpc.non_json > 0 ? "degraded" : "normal", non_json_last_hour: m.rpc.non_json, failed_runs_last_hour: m.rpc.failed, runs_last_hour: m.rpc.runs },
+        campaign_wallet: env.CAMPAIGN_WALLET,
         network_since: EVENTS_SINCE,
         events_since: EVENTS_SINCE,
       }, 60);

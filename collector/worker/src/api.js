@@ -75,7 +75,7 @@ export function lastCampaign(last, asOf) {
   }
   if (!seen) return null;
   return { status: asOf != null && asOf - seen.last_event < CAMPAIGN_RUNNING_SECONDS ? "running" : "completed",
-           started: seen.started, last_event: seen.last_event, transactions: seen.transactions };
+           started: seen.started, last_event: seen.last_event, transactions: seen.transactions, epoch: seen.epoch ?? null };
 }
 
 // rows: contractTotals; campTx: campaignTx; voters: campaignVoters; last: campaignAround or null;
@@ -153,12 +153,13 @@ export function operators({ view, totals, series, validators, draws = [] }) {
 export const SERIES_EPOCHS = 8;   // epochs in the "by epoch" series of a reference contract
 
 // rows of store.stalled: contracts with five transactions in a row without a vote, the fifth over
-// an hour old. transactions: how many went without a vote (so far, or until it recovered).
+// an hour old. transactions: how many went without a vote (so far, or until it recovered);
+// last_tx: the last transaction the contract received.
 export function stalledContracts(rows) {
   return rows.map((r) => ({
     contract: r.address, reference: r.ref_name ?? null, llm: r.llm ?? null, since: r.since_ts,
     transactions: r.recovered_ts == null ? r.streak : r.stalled_tx,
-    status: r.recovered_ts == null ? "stalled" : "recovered", recovered: r.recovered_ts ?? null,
+    status: r.recovered_ts == null ? "stalled" : "recovered", recovered: r.recovered_ts ?? null, last_tx: r.last_tx ?? null,
   }));
 }
 
@@ -239,7 +240,8 @@ export function exportPage({ epoch, rows }) {
 export const CAMPAIGN_GAP_SECONDS = 1800;   // campaign transactions created further apart belong to two campaigns
 const utcDate = (ts) => new Date(ts * 1000).toISOString().slice(0, 10);
 
-// times: [{ first_ts, last_ts }] of campaign transactions, oldest first. One entry per campaign. Its
+// times: [{ first_ts, last_ts, epoch }] of campaign transactions, oldest first. One entry per campaign,
+// with the epoch of its first transaction. Its
 // id is the UTC date it started on, with -2, -3 for further campaigns that started the same day.
 export function campaigns(times, asOf) {
   const list = [];
@@ -247,7 +249,7 @@ export function campaigns(times, asOf) {
   for (const t of times) {
     const c = prev != null && t.first_ts - prev <= CAMPAIGN_GAP_SECONDS ? list.at(-1) : null;
     if (c) { c.transactions++; c.last_event = Math.max(c.last_event, t.last_ts ?? t.first_ts); }
-    else list.push({ started: t.first_ts, last_event: t.last_ts ?? t.first_ts, transactions: 1 });
+    else list.push({ started: t.first_ts, last_event: t.last_ts ?? t.first_ts, transactions: 1, epoch: t.epoch ?? null });
     prev = t.first_ts;
   }
   const perDay = new Map();
@@ -318,7 +320,7 @@ export function events({ view, range, logRows = [], epochs = [], campaignList = 
   for (const e of epochs) {
     if (!inRange(e.start_ts)) continue;
     const prev = starts.get(e.epoch - 1);
-    list.push({ id: `e${e.epoch}`, ts: e.start_ts, type: "epoch", data: { epoch: e.epoch, previous_seconds: prev == null ? null : e.start_ts - prev } });
+    list.push({ id: `e${e.epoch}`, ts: e.start_ts, type: "epoch", data: { epoch: e.epoch, block: e.start_block ?? null, previous_seconds: prev == null ? null : e.start_ts - prev } });
   }
   for (const c of campaignList) if (inRange(c.started)) list.push({ id: `c${c.started}`, ts: c.started, type: "campaign", data: c });
   for (const c of failed) list.push({ id: `f${c.expected_from}`, ts: c.expected_until, type: "campaign", data: c });

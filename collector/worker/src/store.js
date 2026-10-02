@@ -207,7 +207,7 @@ export function d1Store(db) {
     // the campaign that the transaction seen at `ts` belongs to: a campaign lasts under an hour, so
     // its transactions are in the hour of `ts` or the one before
     async campaignAround(epoch, ts) {
-      return db.prepare(`SELECT count(*) transactions, min(first_ts) started, max(last_ts) last_event FROM tx
+      return db.prepare(`SELECT count(*) transactions, min(first_ts) started, max(last_ts) last_event, min(epoch) epoch FROM tx
         WHERE camp IS NOT NULL AND epoch >= ?1 AND hour >= ?2`).bind(epoch - 1, Math.floor(ts / 3600) - 1).first();
     },
 
@@ -275,9 +275,10 @@ export function d1Store(db) {
         FROM contract_hour WHERE epoch = ?1 AND contract = ?2`).bind(epoch, contract).first();
     },
 
-    // contracts whose last stall overlaps the time range [from, to)
+    // contracts whose last stall overlaps the time range [from, to), with their last transaction
     async stalled(from, to) {
-      const { results } = await db.prepare(`SELECT s.address, s.streak, s.since_ts, s.stalled_ts, s.stalled_tx, s.recovered_ts, c.llm, c.ref_name
+      const { results } = await db.prepare(`SELECT s.address, s.streak, s.since_ts, s.stalled_ts, s.stalled_tx, s.recovered_ts, c.llm, c.ref_name,
+          (SELECT t.tx_id FROM tx t WHERE t.recipient = s.address ORDER BY t.first_block DESC LIMIT 1) last_tx
         FROM contract_stall s LEFT JOIN contracts c ON c.address = s.address
         WHERE s.stalled_ts IS NOT NULL AND s.stalled_ts < ?2 AND (s.recovered_ts IS NULL OR s.recovered_ts >= ?1)
         ORDER BY s.stalled_ts DESC`).bind(from, to).all();
@@ -302,7 +303,7 @@ export function d1Store(db) {
 
     // creation and last event of the campaign transactions created in the hours [fromHour, toHour)
     async campaignTimes(fromEpoch, fromHour, toHour) {
-      const { results } = await db.prepare(`SELECT first_ts, last_ts FROM tx
+      const { results } = await db.prepare(`SELECT first_ts, last_ts, epoch FROM tx
         WHERE camp IS NOT NULL AND epoch >= ?1 AND hour >= ?2 AND hour < ?3 ORDER BY first_ts`).bind(fromEpoch, fromHour, toHour).all();
       return results;
     },

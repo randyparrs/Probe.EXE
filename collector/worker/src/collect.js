@@ -87,12 +87,12 @@ export function stallTracker(rows) {
       if (++s.streak === 1) s.streak_ts = ts;
       if (s.streak === STALL_STREAK) s.fifth_ts = ts;
     },
-    voted(address, ts) {
+    voted(address, ts, txId) {
       const s = stalls.get(address);
       if (!s || s.streak === 0) return;
       if (open(s)) {
         Object.assign(s, { recovered_ts: ts, stalled_tx: s.streak });
-        log.push(["recovered", { contract: address, since: s.since_ts, transactions: s.streak }, ts]);
+        log.push(["recovered", { contract: address, since: s.since_ts, transactions: s.streak, tx: txId }, ts]);
       }
       Object.assign(s, { streak: 0, streak_ts: null, fifth_ts: null });
     },
@@ -262,7 +262,7 @@ export async function collect({ rpc, store, now, reference = new Map(), campaign
           }
           const src = tx.camp ? (reference.get(tx.recipient).llm ? "camp_llm" : "camp_control") : "net";
           if (ev.name === "VoteRevealed") {
-            if (tx.recipient != null) stalls.voted(tx.recipient, ev.ts);
+            if (tx.recipient != null) stalls.voted(tx.recipient, ev.ts, id);
             op(epoch, ev.ts, src, ev.args.validator, "votes");
             if (VOTE_COLUMN[ev.args.voteType]) {
               op(epoch, ev.ts, src, ev.args.validator, VOTE_COLUMN[ev.args.voteType]);
