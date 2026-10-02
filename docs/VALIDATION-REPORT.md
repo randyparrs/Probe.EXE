@@ -138,7 +138,7 @@ rate of a contract moves outside its interval between windows.
 
 ## 7. Separate findings
 
-- **Contract copy stuck after an epoch change.** Since the move to epoch 166, the company copy
+- **Contract copy stalled after an epoch change.** Since the move to epoch 166, the company copy
   `0x4cCd16c93eAD8DdF65ddc3646b1fF5FB8b82793d` did not process any tx: 5 in V3 and 1 control tx in
   each of V4, V5 and V6 (outside the metrics, `results/bradbury/probes.jsonl`) ended UNDETERMINED or
   CANCELED with result IDLE, with no votes, after 30 to 45 minutes. An identical copy
@@ -188,7 +188,7 @@ rate of a contract moves outside its interval between windows.
 - **Invalid rows**: accepted with `FINISHED_WITH_ERROR`, excluded by the validity rule of section 2
   (company: V3 5, V4 11, V5 6). The accepted ones whose execution result still came back empty were
   read again (`recheck-execution`) and are valid.
-- **Stuck copy** replaced from V4 on (section 7).
+- **Stalled copy** replaced from V4 on (section 7).
 - **`results/bradbury/execution-recheck-v1.jsonl`**: on 2026-09-28 at 20:48 UTC, while testing
   `scripts/after_window.py`, the re-read of V1 was run again and 13 lines were appended, identical
   in tx and results to the 13 original ones. The SHA-256 pre-registered in V2 corresponds to the

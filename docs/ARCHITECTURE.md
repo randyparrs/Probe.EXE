@@ -111,7 +111,7 @@ campaign transaction is shown as a failed campaign.
 
 Epoch changes, campaigns and RPC incidents are derived when the API is asked, from the stored
 epochs, campaign transactions and collector runs. Changes of the eligible set, quarantines, bans
-and contracts that stop making progress are written to a log by the collector when it detects them.
+and stalled or recovered contracts are written to a log by the collector when it detects them.
 
 ## The request path
 
@@ -154,7 +154,7 @@ sequenceDiagram
 | `contract_hour` | Hourly counters per contract: transactions by class and votes by type. |
 | `op_hour` | Hourly counters per validator and source: votes by type, leader rounds, leader timeouts. |
 | `contracts` | Every contract that received a transaction, with its LLM label. |
-| `contract_stall` | Progress of each contract: transactions in a row without a vote, last stall and recovery. |
+| `contract_stall` | Stalled contracts: transactions in a row without a vote, last stall and recovery of each contract. |
 | `epochs` | Start block and time of each epoch. |
 | `validators` | Lists each validator is in, stake, declared name. |
 | `eligible_set` | The eligible validators and their weights, from the block each set is in effect. |
@@ -189,8 +189,14 @@ The collector and the page run on Cloudflare's free plan.
 
 ## Secrets
 
-The only secret is the key of the campaign wallet, a testnet-only wallet, stored as a GitHub Actions
-secret. The collector and the export only read public data and need no credential.
+There are two secrets, and neither is in this repository:
+
+- The key of the campaign wallet, a testnet-only wallet, stored as a GitHub Actions secret
+  (`CAMPAIGN_PRIVATE_KEY`). Only the campaign workflow reads it.
+- A GitHub token stored in cron-job.org, with permission to dispatch the workflows of this
+  repository. The external cron sends it in the header of its two requests.
+
+The collector and the export only read public data and need no credential.
 
 ## Tests
 
