@@ -219,7 +219,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .c1{min-height:100vh;overflow-x:clip;background:#0b0f0c;color:#c9d1c9}
 .c2{position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(to bottom,rgba(255,255,255,0.018) 0px,rgba(255,255,255,0.018) 1px,transparent 1px,transparent 3px)}
 .c3{position:sticky;top:0;z-index:30;background:#121813;border-bottom:1px solid #3d4a40;font-size:13px}
-.c4{max-width:1280px;margin:0 auto;padding:6px 24px;display:flex;flex-wrap:wrap;gap:2px 24px;align-items:center}
+.c4{max-width:1280px;margin:0 auto;padding:6px 24px;display:flex;gap:14px;align-items:center}
 .c5{border-bottom:1px dotted #6b786d;cursor:help}
 .c6{display:flex;flex-wrap:wrap;gap:0 6px}
 .c7{color:#8a968a}
@@ -496,6 +496,12 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 /* stuck contracts: recovered status and second row */
 .c117.alt{background:#111712}
 .recovered{color:#39d353}
+
+/* logo on the top bar: beside the items, and in the margin of the page where there is room for it */
+.bar-items{display:flex;flex-wrap:wrap;gap:2px 24px;align-items:center;min-width:0}
+.bar-logo{flex:none;width:28px;height:28px;display:block}
+.bar-logo-s{flex:none;width:16px;height:16px;display:block}
+@media (min-width:1400px){.bar-logo{margin-left:-42px}}
 
 /* notice of a section while the current epoch has no campaign yet, or while one is running */
 .camp-note{color:#e3a008;font-size:14px;max-width:90ch;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline}

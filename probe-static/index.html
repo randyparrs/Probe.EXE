@@ -6,6 +6,7 @@
 <title>Probe.EXE · GenLayer Bradbury consensus health</title>
 <meta name="description" content="Consensus health of LLM-based Intelligent Contracts on GenLayer Bradbury (testnet).">
 <meta name="color-scheme" content="dark">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="styles.css">
 <script src="app.js" defer></script>
 <script src="tape.js" defer></script>
@@ -19,14 +20,17 @@
 <div class="c3">
   <div class="contents" data-only="desk">
     <div class="c4">
+      <svg class="bar-logo" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="Probe.EXE"><path fill="#39d353" d="M1 1h14v3H1zM1 4h1v11H1zM14 4h1v11h-1zM1 14h14v1H1zM5 6h5v1H5zM5 6h2v7H5zM9 7h2v2H9zM5 9h5v1H5z"/><path fill="#121813" d="M10 2h1v1h-1zM12 2h1v1h-1z"/></svg>
+      <div class="bar-items">
       <span>Updated: Network <span class="c5" data-f="upd-net">...</span> · Chain <span class="c5" data-f="upd-chain">...</span> · Campaign <span class="c5" data-f="upd-camp">...</span></span>
       <span>Epoch <span data-f="epoch-n">...</span><span data-f="epoch-since-wrap" hidden> since <span class="c5" data-f="epoch-since"></span></span></span>
       <span class="c5" title="Epochs last at least 24 h but can run longer (epoch 164 lasted 3 days 21 h).">Next epoch change: <span data-f="epoch-next">...</span></span>
       <span class="c6"><span class="c7">Sources:</span><span class="c5" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET] Network</span><span>·</span><span class="c5" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP] Campaign</span><span>·</span><span class="c5" title="Read directly from the staking contract.">[CHAIN] Chain</span></span>
+      </div>
     </div>
   </div>
   <div class="contents" data-only="mob">
-    <button class="c9" type="button" data-toggle-panel="sb"><span class="c10">Updated <span data-f="upd-oldest">...</span></span><span><span data-sign>[+]</span></span></button>
+    <button class="c9" type="button" data-toggle-panel="sb"><span class="c10"><svg class="bar-logo-s" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#39d353" d="M1 1h14v3H1zM1 4h1v11H1zM14 4h1v11h-1zM1 14h14v1H1zM5 6h5v1H5zM5 6h2v7H5zM9 7h2v2H9zM5 9h5v1H5z"/><path fill="#121813" d="M10 2h1v1h-1zM12 2h1v1h-1z"/></svg>Updated <span data-f="upd-oldest">...</span></span><span><span data-sign>[+]</span></span></button>
     <div class="contents" data-panel="sb" hidden>
       <div class="c11">
         <span>Updated: Network <span data-f="upd-net">...</span> · Chain <span data-f="upd-chain">...</span> · Campaign <span data-f="upd-camp">...</span></span>
