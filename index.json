@@ -1,0 +1,23 @@
+{
+  "updated": "2026-10-02T20:23:58.000Z",
+  "files": [
+    {
+      "epoch": 169,
+      "csv": "epoch-169.csv",
+      "jsonl": "epoch-169.jsonl",
+      "rows": 48
+    },
+    {
+      "epoch": 168,
+      "csv": "epoch-168.csv",
+      "jsonl": "epoch-168.jsonl",
+      "rows": 737
+    },
+    {
+      "epoch": 167,
+      "csv": "epoch-167.csv",
+      "jsonl": "epoch-167.jsonl",
+      "rows": 671
+    }
+  ]
+}
