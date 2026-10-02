@@ -46,3 +46,8 @@ Thumbs.db
 # one-off backfill of the eligible sets: its input and output
 collector/worker/backfill-campaign-tx.json
 collector/worker/backfill-leader-draw.sql
+
+# Python caches, and third-party files that are downloaded and never redistributed
+__pycache__/
+*.pyc
+reference/
