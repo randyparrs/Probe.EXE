@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probe.EXE · GenLayer Bradbury consensus health</title>
+<meta name="description" content="Consensus health of LLM-based Intelligent Contracts on GenLayer Bradbury (testnet).">
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="styles.css">
+<script src="app.js" defer></script>
+<script src="tape.js" defer></script>
+<script src="states.js" defer></script>
+<script src="stats.js" defer></script>
+<script src="data.js" defer></script>
+</head>
+<body>
+<div class="c1">
+<div class="contents" data-only="desk"><div class="c2"></div></div>
+<div class="c3">
+  <div class="contents" data-only="desk">
+    <div class="c4">
+      <span>Updated: Network <span class="c5" data-f="upd-net">...</span> · Chain <span class="c5" data-f="upd-chain">...</span> · Campaign <span class="c5" data-f="upd-camp">...</span></span>
+      <span>Epoch <span data-f="epoch-n">...</span><span data-f="epoch-since-wrap" hidden> since <span class="c5" data-f="epoch-since"></span></span></span>
+      <span class="c5" title="Epochs last at least 24 h but can run longer (epoch 164 lasted 3 days 21 h).">Next epoch change: <span data-f="epoch-next">...</span></span>
+      <span class="c6"><span class="c7">Sources:</span><span class="c5" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET] Network</span><span>·</span><span class="c5" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP] Campaign</span><span>·</span><span class="c5" title="Read directly from the staking contract.">[CHAIN] Chain</span></span>
+      <span class="c8"><span class="cursor" aria-hidden="true"></span></span>
+    </div>
+  </div>
+  <div class="contents" data-only="mob">
+    <button class="c9" type="button" data-toggle-panel="sb"><span class="c10">Updated <span data-f="upd-oldest">...</span> <span class="cursor" aria-hidden="true"></span></span><span><span data-sign>[+]</span></span></button>
+    <div class="contents" data-panel="sb" hidden>
+      <div class="c11">
+        <span>Updated: Network <span data-f="upd-net">...</span> · Chain <span data-f="upd-chain">...</span> · Campaign <span data-f="upd-camp">...</span></span>
+        <span>Epoch <span data-f="epoch-n">...</span><span data-f="epoch-since-wrap" hidden> since <span data-f="epoch-since"></span></span></span>
+        <span>Next epoch change: <span data-f="epoch-next">...</span></span>
+        <span class="c7">Epochs last at least 24 h but can run longer (epoch 164 lasted 3 days 21 h).</span>
+        <span>Sources: [NET] Network · [CAMP] Campaign · [CHAIN] Chain</span>
+      </div>
+    </div>
+  </div>
+</div>
+<header class="c12">
+  <div class="hd-row">
+    <div class="hd-text">
+      <div class="c13">Probe.EXE</div>
+      <div class="c14">Consensus health of LLM-based Intelligent Contracts on GenLayer Bradbury (testnet).</div>
+      <button class="what-link" type="button" data-go-tab="5">&gt; What is Probe.EXE? [F6]<span class="cursor" aria-hidden="true"></span></button>
+    </div>
+    <div class="tape" data-tape>
+      <div class="tape-win"><div class="tape-row" data-tape-row role="list" aria-label="Latest network transactions"></div></div>
+      <div class="tape-cap">
+        <span>Last <span data-only="desk">40</span><span data-only="mob">20</span> network transactions <span class="tape-src" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET]</span></span>
+        <span class="tape-leg"><span class="tb-g">▮</span> first attempt <span class="tb-a">▮</span> after retry <span class="tb-r">▮</span> no consensus <span class="tb-x">▮</span> in progress</span>
+      </div>
+    </div>
+  </div>
+  <div class="contents" data-only="desk">
+    <nav class="c16">
+        <button class="c17 chip on" type="button" data-go-tab="0">[<b>F1</b> Overview]</button>
+        <button class="c17 chip" type="button" data-go-tab="1">[<b>F2</b> Contracts]</button>
+        <button class="c17 chip" type="button" data-go-tab="2">[<b>F3</b> Operators]</button>
+        <button class="c17 chip" type="button" data-go-tab="3">[<b>F4</b> Events]</button>
+        <button class="c17 chip" type="button" data-go-tab="4">[<b>F5</b> Model validation]</button>
+        <button class="c17 chip" type="button" data-go-tab="5">[<b>F6</b> How it works]</button>
+    </nav>
+  </div>
+  <div class="contents" data-only="mob">
+    <label class="c18">Section
+      <select class="c19" data-tab-select>
+        <option value="0">F1 Overview</option>
+        <option value="1">F2 Contracts</option>
+        <option value="2">F3 Operators</option>
+        <option value="3">F4 Events</option>
+        <option value="4">F5 Model validation</option>
+        <option value="5">F6 How it works</option>
+      </select>
+    </label>
+  </div>
+</header>
+<main class="c20">
+  <div class="c21">
+    <div class="c22">
+      <h1 class="c23"><span data-sectitle>F1 Overview</span></h1>
+      <div class="contents" data-tab-show="0"><div class="c24">Is the network healthy right now for contracts that call an LLM?</div></div>
+    </div>
+    <div class="contents" data-hasview>
+      <label class="c25 view-w">View:
+        <select class="c26" data-view-select title="Last 24 h counts whole clock hours, so it can include up to one hour more.">
+          <option value="">Current epoch</option>
+          <option value="24h">Last 24 h</option>
+        </select>
+      </label>
+    </div>
+  </div>
+  <div class="contents" data-tab-show="0">
+    <div class="c27">
+      <div class="c28">
+        <fieldset class="c29">
+          <legend class="c30">First-attempt acceptance, contracts with LLM calls <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span></legend>
+        </fieldset>
+        <fieldset class="c29">
+          <legend class="c30">First-attempt acceptance, control without LLM <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span></legend>
+        </fieldset>
+      </div>
+      <fieldset class="c41">
+        <legend class="c42">Network-wide first-attempt acceptance <span class="c31" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET]</span></legend>
+          <div class="c43">
+            <div class="c44" data-net-row="all"><span class="c45">All transactions</span><span class="c46" data-bar></span><span data-count></span></div>
+            <div class="c44" data-net-row="llm"><span class="c45">Contracts with LLM calls</span><span class="c46" data-bar></span><span data-count></span></div>
+          </div>
+      </fieldset>
+      <div class="c47">
+        <fieldset class="c48" data-ord="votes">
+          <legend class="c30">What goes wrong (votes) <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span></legend>
+        </fieldset>
+        <fieldset class="c48" data-ord="attempts">
+          <legend class="c30">What goes wrong (attempts) <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span></legend>
+        </fieldset>
+        <fieldset class="c48" data-ord="time">
+          <legend class="c30">Time to acceptance <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span></legend>
+        </fieldset>
+        <fieldset class="c48" data-ord="validators">
+          <legend class="c30">Validators <span class="c31" title="Read directly from the staking contract.">[CHAIN]</span></legend>
+        </fieldset>
+        <fieldset class="c48" data-ord="ops">
+          <legend class="c30">Operators timing out <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span></legend>
+        </fieldset>
+        <fieldset class="c48" data-ord="campaign">
+          <legend class="c30">Last campaign <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span></legend>
+        </fieldset>
+        <fieldset class="c48" data-ord="rpc">
+          <legend class="c30">RPC <span class="c31" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET]</span></legend>
+        </fieldset>
+      </div>
+    </div>
+  </div>
+  <div class="contents" data-tab-show="1" hidden>
+    <div class="c65">
+      <fieldset class="c66">
+        <legend class="c30">A. Reference contracts <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span></legend>
+        <div class="c67">Four fixed contracts, seven deployed copies, called every day with fixed inputs. dvA makes no LLM call: it is the control.</div>
+          <div class="contents" data-only="desk">
+            <div class="c68">
+              <div class="c69" data-rows="ref-desk">
+                <div class="c70">
+                    <button class="c71" type="button" title="Sort by contract" data-table="ref" data-sort-key="id">Contract<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by first attempt" data-table="ref" data-sort-key="fa">First attempt<span data-arrow> ▼</span></button>
+                    <button class="c72" type="button" title="Sort by after retry" data-table="ref" data-sort-key="ar">After retry<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by no consensus" data-table="ref" data-sort-key="nc">No consensus<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="The leader's execution failed and validators agreed on the error. Counted apart." data-table="ref" data-sort-key="ee">Accepted w/ exec error<span data-arrow> ↕</span></button>
+                    <button class="c71" type="button" title="Sort by retry causes" data-table="ref" data-sort-key="rc">Retry causes<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by timeout share" data-table="ref" data-sort-key="vo">Votes<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Time to acceptance: median and p90" data-table="ref" data-sort-key="tt">Time to accept.<span data-arrow> ↕</span></button>
+                    <button class="c71" type="button" title="First-attempt acceptance in each of the last epochs, oldest first.">By epoch</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="contents" data-only="mob" data-rows="ref-mob">
+          </div>
+          <div class="c101"><span>Votes:</span><span><span class="c50">█</span> Agree</span><span><span class="c51">█</span> Content disagreement</span><span><span class="v-dv">█</span> Execution divergence (DV)</span><span><span class="c52">█</span> Timeout</span></div>
+      </fieldset>
+      <fieldset class="c66">
+        <legend class="c30">B. Network contracts <span class="c31" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET]</span> <span class="c31" title="Read directly from the staking contract.">[CHAIN]</span></legend>
+        <div class="c102">Every contract that received transactions on Bradbury in this view. We did not write these contracts or choose their inputs.</div>
+        <div class="c103"><span class="c7">Show:</span>
+          <button class="c104 chip" type="button" data-net-filter="llm">Contracts with LLM calls</button>
+          <span class="c7">·</span>
+          <button class="c104 chip on" type="button" data-net-filter="all">All</button>
+        </div>
+        <div class="empty" data-empty="net" hidden>No contract transactions observed in this view.</div>
+          <div class="contents" data-only="desk">
+            <div class="c68">
+              <div class="c105" data-rows="net-desk">
+                <div class="c106">
+                    <button class="c71" type="button" title="Sort by contract" data-table="net" data-sort-key="c">Contract<span data-arrow> ↕</span></button>
+                    <button class="c71" type="button" title="From the contract's code on chain (exec_prompt, prompt_comparative, prompt_non_comparative). It labels the contract, not each transaction." data-table="net" data-sort-key="l">LLM calls<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by transactions" data-table="net" data-sort-key="tx">Transactions<span data-arrow> ▼</span></button>
+                    <button class="c72" type="button" title="Sort by first attempt" data-table="net" data-sort-key="fa">First attempt<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by no consensus" data-table="net" data-sort-key="nc">No consensus<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by cancelled / idle" data-table="net" data-sort-key="cx">Cancelled / idle<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by last seen" data-table="net" data-sort-key="ls">Last seen<span data-arrow> ↕</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="contents" data-only="mob" data-rows="net-mob">
+          </div>
+      </fieldset>
+      <fieldset class="c66">
+        <legend class="c30">C. Stuck contracts <span class="c31" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET]</span></legend>
+          <div class="contents" data-only="desk">
+            <div class="c68">
+              <div class="c114" data-rows="stuck-desk">
+                <div class="c115"><div class="c116">Contract</div><div class="c116">Since</div><div class="c116">Transactions without a vote</div><div class="c116">Status</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="contents" data-only="mob" data-rows="stuck-mob">
+          </div>
+        <div class="c123">A contract is listed when five transactions in a row received no vote and the fifth one is over 60 minutes old. It recovers at the next vote. Detection starts on 2026-10-02.</div>
+        <div class="c123">A contract copy stopped processing transactions after the epoch change 165 -&gt; 166 while an identical copy kept working (September 2026).</div>
+      </fieldset>
+    </div>
+  </div>
+  <div class="contents" data-tab-show="2" hidden>
+    <div class="c124">
+      <div class="c125">
+        <div class="c126">Data only. Each operator is shown by its name declared on chain and its address. A high rate is a measurement, not a judgment of how the node is run. Operators can use this view to diagnose their own node.</div>
+        <div class="c127">Explorer averages mix all transactions. This view separates votes on contracts with LLM calls from a control without LLM.</div>
+      </div>
+      <label class="c128"><span class="c7">&gt;</span><input class="c129" placeholder="Search operator name or address" data-search-input></label>
+      <fieldset class="c66">
+        <legend class="c30">Votes per operator <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span> <span class="c31" title="All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours.">[NET]</span> <span class="c31" title="Read directly from the staking contract.">[CHAIN]</span></legend>
+        <div class="empty" data-empty="ops" hidden>No votes recorded for this operator in this view.</div>
+          <div class="contents" data-only="desk">
+            <div class="c68">
+              <div class="c130" data-rows="ops-desk">
+                <div class="c131">
+                  <div class="c132">Campaign with LLM [CAMP]</div>
+                  <div class="c133">Campaign control [CAMP]</div>
+                  <div class="c134">Network [NET]</div>
+                  <div class="c135">Led / Leader timeouts</div>
+                </div>
+                <div class="c136">
+                    <button class="c71" type="button" title="Sort by operator" data-table="ops" data-sort-key="nm">Operator<span data-arrow> ↕</span></button>
+                    <button class="c71" type="button" title="Sort by status" data-table="ops" data-sort-key="st">Status<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by votes" data-table="ops" data-sort-key="lv">Votes<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by timeout rate with LLM" data-table="ops" data-sort-key="to">Timeout<span data-arrow> ▼</span></button>
+                    <button class="c71" type="button" title="Agree / Content / DV / Timeout" data-table="ops" data-sort-key="sp">Split<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by votes" data-table="ops" data-sort-key="cv">Votes<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by timeouts" data-table="ops" data-sort-key="ct">Timeouts<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by dv" data-table="ops" data-sort-key="cd">DV<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by all votes" data-table="ops" data-sort-key="nv">All votes<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by campaign" data-table="ops" data-sort-key="ld">Campaign<span data-arrow> ↕</span></button>
+                    <button class="c72" type="button" title="Sort by network" data-table="ops" data-sort-key="nl">Network<span data-arrow> ↕</span></button>
+                    <button class="c71" type="button" title="The lower bound of this operator's 95% CI is above the rate of all other operators in this view." data-table="ops" data-sort-key="ab">Above rest<span data-arrow> ↕</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="contents" data-only="mob" data-rows="ops-mob">
+          </div>
+      </fieldset>
+      <fieldset class="c66">
+        <legend class="c30">Committee selection check <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span> <span class="c31" title="Read directly from the staking contract.">[CHAIN]</span></legend>
+          <div class="c158"><span class="c79">Are leaders drawn in proportion to stake weight?</span><span data-committee-p></span></div>
+          <div class="c159">Checks the hypothesis that the leader is the first weighted draw. The first leader of each campaign transaction is compared with the eligible set in effect at its block: the validators that were active, not banned and not quarantined.</div>
+          <div class="c160"><span>Operator</span><span class="c55">Weight</span><span class="c55">Observed</span><span class="c55">Expected</span></div>
+          <div class="c161" data-rows="committee"></div>
+      </fieldset>
+    </div>
+  </div>
+  <div class="contents" data-tab-show="3" hidden>
+    <div class="c167"><span class="c7">Filter:</span>
+      <button class="c104 chip on" type="button" data-ev-filter="all">All</button><button class="c104 chip" type="button" data-ev-filter="epochs">Epochs</button><button class="c104 chip" type="button" data-ev-filter="validators">Validators</button><button class="c104 chip" type="button" data-ev-filter="contracts">Contracts</button><button class="c104 chip" type="button" data-ev-filter="campaigns">Campaigns</button><button class="c104 chip" type="button" data-ev-filter="rpc">RPC</button>
+    </div>
+    <fieldset class="c168">
+      <legend class="c30">Event log, newest first</legend>
+      <div class="empty" data-empty="ev" hidden>No events in this view.</div>
+      <div class="contents" data-rows="events"></div>
+    </fieldset>
+  </div>
+  <div class="contents" data-tab-show="4" hidden>
+    <div class="c124">
+      <div class="c179">
+        <div class="c180">The prediction model did not pass its pre-registered criterion: 11 of 15 predictions fell inside the measured interval; 12 were required.</div>
+        <div class="c181">This page does not show predictions. The model and its results are kept here as a record.</div>
+      </div>
+      <div class="posthoc"><span class="posthoc-tag">[POST-HOC ANALYSIS]</span> Post-hoc sensitivity: counting first attempts from consensus events instead of 1 s polling, 2 transactions change and the criterion would be met (12 of 15, MAE 9.1 vs 9.7). The pre-registered metric was polling, so the official result stands. The result is at the boundary.</div>
+      <div class="c182">Six measurement windows on September 28-30, 2026. V1 only fits the model; V2 to V6 are predicted for three contracts each (15 pairs). Each prediction was committed and published before its window ran.</div>
+      <fieldset class="c66">
+        <legend class="c30">Pre-registered predictions vs measured <span class="c31" title="Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions.">[CAMP]</span></legend>
+        <div class="contents" data-only="mob"><button class="c183" type="button" data-toggle-panel="pred"><span data-sign>[+]</span> The 15 predictions</button></div>
+        <div class="contents" data-panel="pred">
+          <div class="c68">
+            <div class="c184">
+              <div class="c185"><span class="c116">Window</span><span class="c116">Contract</span><span class="c186">Predicted</span><span class="c186">Measured</span><span class="c116">Result</span><span class="c186">Naive</span></div>
+                <div class="c187">
+                  <span class="c188" data-utc="2026-09-28T23:01:00Z">V2 09-28 23:01 UTC</span>
+                  <span class="c188">wizard</span>
+                  <span class="c189">80.8%</span>
+                  <span class="c189">80.0% <span class="c122">(40 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 66.3-90.0</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">82.0%</span>
+                </div>
+                <div class="c192">
+                  <span class="c188" data-utc="2026-09-28T23:01:00Z">V2 09-28 23:01 UTC</span>
+                  <span class="c188">company</span>
+                  <span class="c189">55.9%</span>
+                  <span class="c189">52.0% <span class="c122">(26 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 37.4-66.3</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">58.0%</span>
+                </div>
+                <div class="c187">
+                  <span class="c188" data-utc="2026-09-28T23:01:00Z">V2 09-28 23:01 UTC</span>
+                  <span class="c188">dvB</span>
+                  <span class="c189">82.9%</span>
+                  <span class="c189">82.0% <span class="c122">(41 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 68.6-91.4</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">84.0%</span>
+                </div>
+                <div class="c192">
+                  <span class="c188" data-utc="2026-09-29T13:26:00Z">V3 09-29 13:26 UTC *</span>
+                  <span class="c188">wizard</span>
+                  <span class="c189">76.2%</span>
+                  <span class="c189">66.0% <span class="c122">(33 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 51.2-78.8</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">81.0%</span>
+                </div>
+                <div class="c187">
+                  <span class="c188" data-utc="2026-09-29T13:26:00Z">V3 09-29 13:26 UTC *</span>
+                  <span class="c188">company</span>
+                  <span class="c189">58.6%</span>
+                  <span class="c189">22.2% <span class="c122">(10 / 45, <span class="c190" title="95% Clopper-Pearson interval">CI 11.2-37.1</span>)</span></span>
+                  <span class="c193">Outside</span>
+                  <span class="c189">55.0%</span>
+                </div>
+                <div class="c192">
+                  <span class="c188" data-utc="2026-09-29T13:26:00Z">V3 09-29 13:26 UTC *</span>
+                  <span class="c188">dvB</span>
+                  <span class="c189">76.2%</span>
+                  <span class="c189">90.0% <span class="c122">(45 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 78.2-96.7</span>)</span></span>
+                  <span class="c193">Outside</span>
+                  <span class="c189">83.0%</span>
+                </div>
+                <div class="c187">
+                  <span class="c188" data-utc="2026-09-29T20:47:00Z">V4 09-29 20:47 UTC</span>
+                  <span class="c188">wizard</span>
+                  <span class="c189">73.9%</span>
+                  <span class="c189">72.0% <span class="c122">(36 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 57.5-83.8</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">76.0%</span>
+                </div>
+                <div class="c192">
+                  <span class="c188" data-utc="2026-09-29T20:47:00Z">V4 09-29 20:47 UTC</span>
+                  <span class="c188">company</span>
+                  <span class="c189">37.8%</span>
+                  <span class="c189">33.3% <span class="c122">(13 / 39, <span class="c190" title="95% Clopper-Pearson interval">CI 19.1-50.2</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">44.1%</span>
+                </div>
+                <div class="c187">
+                  <span class="c188" data-utc="2026-09-29T20:47:00Z">V4 09-29 20:47 UTC</span>
+                  <span class="c188">dvB</span>
+                  <span class="c189">74.3%</span>
+                  <span class="c189">74.0% <span class="c122">(37 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 59.7-85.4</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">85.3%</span>
+                </div>
+                <div class="c192">
+                  <span class="c188" data-utc="2026-09-30T01:32:00Z">V5 09-30 01:32 UTC</span>
+                  <span class="c188">wizard</span>
+                  <span class="c189">77.2%</span>
+                  <span class="c189">82.0% <span class="c122">(41 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 68.6-91.4</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">75.0%</span>
+                </div>
+                <div class="c187">
+                  <span class="c188" data-utc="2026-09-30T01:32:00Z">V5 09-30 01:32 UTC</span>
+                  <span class="c188">company</span>
+                  <span class="c189">38.9%</span>
+                  <span class="c189">22.7% <span class="c122">(10 / 44, <span class="c190" title="95% Clopper-Pearson interval">CI 11.5-37.8</span>)</span></span>
+                  <span class="c193">Outside</span>
+                  <span class="c189">41.4%</span>
+                </div>
+                <div class="c192">
+                  <span class="c188" data-utc="2026-09-30T01:32:00Z">V5 09-30 01:32 UTC</span>
+                  <span class="c188">dvB</span>
+                  <span class="c189">77.7%</span>
+                  <span class="c189">86.0% <span class="c122">(43 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 73.3-94.2</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">82.5%</span>
+                </div>
+                <div class="c187">
+                  <span class="c188" data-utc="2026-09-30T13:26:00Z">V6 09-30 13:26 UTC *</span>
+                  <span class="c188">wizard</span>
+                  <span class="c189">77.1%</span>
+                  <span class="c189">72.0% <span class="c122">(36 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 57.5-83.8</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">76.4%</span>
+                </div>
+                <div class="c192">
+                  <span class="c188" data-utc="2026-09-30T13:26:00Z">V6 09-30 13:26 UTC *</span>
+                  <span class="c188">company</span>
+                  <span class="c189">32.8%</span>
+                  <span class="c189">62.0% <span class="c122">(31 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 47.2-75.3</span>)</span></span>
+                  <span class="c193">Outside</span>
+                  <span class="c189">37.7%</span>
+                </div>
+                <div class="c187">
+                  <span class="c188" data-utc="2026-09-30T13:26:00Z">V6 09-30 13:26 UTC *</span>
+                  <span class="c188">dvB</span>
+                  <span class="c189">77.4%</span>
+                  <span class="c189">84.0% <span class="c122">(42 / 50, <span class="c190" title="95% Clopper-Pearson interval">CI 70.9-92.8</span>)</span></span>
+                  <span class="c191">Inside</span>
+                  <span class="c189">83.2%</span>
+                </div>
+            </div>
+          </div>
+          <div class="c194">* Window crossed an epoch change (V3: 165 -&gt; 166, V6: 166 -&gt; 167).</div>
+        </div>
+        <div class="c195">Mean absolute error: 9.5 points (model) vs 10.0 (naive). Both conditions were required.</div>
+      </fieldset>
+      <div class="c196">
+        <fieldset class="c66">
+          <legend class="c30">Pre-planned analyses</legend>
+          <div class="c197"><div>Without windows that crossed an epoch change: 8 of 9 inside.</div><div>Leader timeouts predicted within the interval: 14 of 15.</div></div>
+          <div class="c198"><div class="c199">
+            <div class="c200"><span>Predicted</span><span class="c55">Pairs</span><span class="c55">Inside</span><span class="c55">Measured</span><span class="c55">Rate</span></div>
+            <div class="c201"><span>30-40%</span><span class="c55">3</span><span class="c55">1</span><span class="c55">54 / 133</span><span class="c55">40.6%</span></div><div class="c202"><span>50-60%</span><span class="c55">2</span><span class="c55">1</span><span class="c55">36 / 95</span><span class="c55">37.9%</span></div><div class="c201"><span>70-80%</span><span class="c55">8</span><span class="c55">7</span><span class="c55">313 / 400</span><span class="c55">78.2%</span></div><div class="c202"><span>80-90%</span><span class="c55">2</span><span class="c55">2</span><span class="c55">81 / 100</span><span class="c55">81.0%</span></div>
+          </div></div>
+        </fieldset>
+        <fieldset class="c66">
+          <legend class="c30">Reference models (not judged)</legend>
+          <div class="c203"><div>Secondary model: 12 of 15.</div><div>Local-only estimate: 0 of 3. Local runs accept 100%; the network accepted 22-90% at the first attempt. Acceptance cannot be predicted without measuring the network.</div></div>
+        </fieldset>
+      </div>
+      <fieldset class="c66">
+        <legend class="c30">Why it failed</legend>
+        <div class="c182">3 of the 4 misses are one contract that changed behavior twice (after the epoch change to 166, and again before 167). The model used the previous window, so it lagged one step behind.</div>
+      </fieldset>
+      <div class="c204"><a href="https://github.com/randyparrs/probe-exe-preregistration" target="_blank" rel="noopener">Pre-registration repository</a><span class="c7">·</span><a href="https://github.com/randyparrs/Probe.EXE/blob/main/docs/VALIDATION-REPORT.md" target="_blank" rel="noopener">Public report</a><span class="c7">·</span><a href="https://github.com/randyparrs/probe-exe-preregistration#verifying-the-hashes" target="_blank" rel="noopener">Verification guide</a></div>
+    </div>
+  </div>
+  <div class="contents" data-tab-show="5" hidden>
+    <div class="c205">
+      <fieldset class="c29">
+        <legend class="c30">What this is</legend>
+        <div class="what">
+          <div><span class="c207">Problem:</span> no one can see, per operator, whether Bradbury accepts transactions at the first attempt or why it retries.</div>
+          <div><span class="c207">Users:</span> validator operators, developers deploying contracts with LLM calls, and the GenLayer team.</div>
+          <div><span class="c207">Use:</span> spot degraded operators and measure the real cost of LLM calls against a control.</div>
+        </div>
+      </fieldset>
+      <fieldset class="c29">
+        <legend class="c30">1. Sources</legend>
+        <div class="c206">
+          <div>History on this page starts on 2026-10-01. Earlier measurements are in Model validation.</div>
+          <div><div class="c207">[NET] Network</div><div>All transactions on Bradbury, read from consensus events. Contracts and inputs are not ours. Updated every minute. Since 2026-10-01.</div></div>
+          <div><div class="c207">[CAMP] Campaign</div><div>Our daily campaign: fixed reference contracts and a control without LLM. All four reference contracts run together in the same one-hour window each day, so the control sees the same network conditions. Runs once a day at a rotating hour, so every hour of the day is covered over time. Only transactions sent by the campaign wallet to a reference contract count as campaign. Since 2026-10-01.</div></div>
+          <div><div class="c207">[CHAIN] Chain</div><div>Read directly from the staking contract: validator status, stake and epochs. Updated every minute. Since 2026-10-01.</div></div>
+        </div>
+      </fieldset>
+      <fieldset class="c29">
+        <legend class="c30">2. How we count</legend>
+        <div class="c206">
+          <div><div class="c207">First-attempt acceptance</div><div>A transaction counts as accepted at the first attempt when its first real acceptance comes after a single proposal, with no leader timeout, leader rotation, appeal, recomputation or validators timeout before it. A round counts as an acceptance only when its result is AGREE: the chain also closes a round on a validators timeout. The final state decides, so an acceptance overturned by an appeal counts as no consensus.</div></div>
+          <div><div class="c207">Why we count from consensus events</div><div>Since <span data-field="method.eventsSince">2026-10-01</span> the page counts from the consensus events of each transaction, not from polling its status. Polling every second does not see a leader that times out in under 3 seconds, so it counts some retried transactions as first attempts. In the September 2026 validation this changed 7 of 728 transactions.</div></div>
+          <div><div class="c207">Retry causes</div>
+            <div class="c208">
+              <div>Leader timeout: the leader of the attempt did not deliver a proposal in time, and a new leader was activated.</div>
+              <div>No majority: the votes did not give the proposal a majority, and the leader was rotated.</div>
+              <div>Appeal: a larger committee rechecked the existing proposal. We see one start right after a validators timeout.</div>
+              <div>Recomputation: the transaction was sent back to be executed again, after a successful appeal on it or on an earlier transaction of the same contract.</div>
+            </div>
+          </div>
+          <div><div class="c207">Health labels</div><div>[HEALTHY]: first-attempt acceptance of 90% or more. [DEGRADED]: 70 to 90%. [FAILING]: below 70%. Fixed thresholds chosen by Probe.EXE, not a GenLayer standard. The labels apply to acceptance rates only, never to an operator.</div></div>
+          <div><div class="c207">Vote categories</div>
+            <div class="c208">
+              <div><span class="c50">█</span> Agree: the validator's result matched the leader's proposal.</div>
+              <div><span class="c51">█</span> Content disagreement: the validator ran the contract and reached a different result that fails the contract's equivalence rule.</div>
+              <div><span class="v-dv">█</span> Execution divergence (DV): the validator's execution did not reproduce the leader's result (a deterministic violation), which is different from disagreeing with its content.</div>
+              <div><span class="c52">█</span> Timeout: the validator did not submit a vote before the deadline.</div>
+            </div>
+          </div>
+          <div><div class="c207">Accepted with execution error</div><div>When the leader's execution fails and validators agree on the error, the transaction is accepted but the contract did not do its work. We count these apart so they do not raise the acceptance rate.</div></div>
+          <div><div class="c207">Attribution per operator</div><div>Every vote and every leader round is attributed to the validator address that cast it, then shown with the operator name declared on chain.</div></div>
+          <div><div class="c207">Eligible validators</div><div>A validator counts as eligible when it is in the active list of the staking contract, not in its banned list and with no quarantine in effect. The eligible set is stored each time it changes and at each epoch change, and each campaign transaction is compared with the set in effect at its block. The GenLayer documentation says that a ban or a quarantine prevents new selection. Measured: the quarantine list of the staking contract keeps entries after they expire. An entry "until epoch N" stops applying when epoch N starts: in epoch 168, validators listed with a quarantine until epoch 168 voted and led. Expired entries are ignored, here and in the quarantined count.</div></div>
+          <div><div class="c207">Intervals</div><div>Rates come with a 95% Clopper-Pearson interval, an exact binomial interval. It stays valid for small counts, where it is wide.</div></div>
+          <div><div class="c207">Detecting contracts with LLM calls</div><div>A contract is labeled "with LLM calls" when its code on chain contains exec_prompt, prompt_comparative or prompt_non_comparative. Limit: the label applies to the contract, not to each transaction. A labeled contract can run code paths without an LLM call, and contracts whose code we cannot read are shown as "Code not available".</div></div>
+        </div>
+      </fieldset>
+      <fieldset class="c29">
+        <legend class="c30">3. What we cannot see</legend>
+        <div class="c209">
+          <div>The model, provider or GenVM version of each validator is not visible on chain. We measure symptoms per operator, not their causes.</div>
+          <div>Third-party contracts: we do not control their code or inputs. Testnet: node or contract upgrades can change behavior.</div>
+        </div>
+      </fieldset>
+      <fieldset class="c29">
+        <legend class="c30">4. Verify</legend>
+        <div class="c210">
+          <div class="c211"><a href="https://explorer-bradbury.genlayer.com" target="_blank" rel="noopener">Bradbury explorer</a><a href="https://github.com/randyparrs/Probe.EXE" target="_blank" rel="noopener">Source code</a><a href="https://github.com/randyparrs/probe-exe-preregistration" target="_blank" rel="noopener">Pre-registration repository</a><a href="https://github.com/randyparrs/probe-exe-preregistration#verifying-the-hashes" target="_blank" rel="noopener">Hash verification guide</a></div>
+          <div><div class="c7">Data downloads (CSV and JSON Lines), one file per epoch, from the <a href="https://github.com/randyparrs/Probe.EXE/tree/data" target="_blank" rel="noopener">data branch</a> of the repository</div><div class="c211" data-downloads>Loading...</div></div>
+          <div>Campaign wallet: <a href="https://explorer-bradbury.genlayer.com/address/0xe8EFc2E93bCBEDaAb435873fF873e74745A4a4eF" target="_blank" rel="noopener" title="0xe8EFc2E93bCBEDaAb435873fF873e74745A4a4eF">0xe8EF...a4eF</a></div>
+          <div><div class="c7">Reference contract addresses: four contracts, seven deployed copies</div>
+            <div class="c212"><span class="c213">wizard, copy 1:</span> <a class="c214" href="https://explorer-bradbury.genlayer.com/address/0x27490261a2d0BEfb37A136C7eabE38f402aDB008" target="_blank" rel="noopener">0x27490261a2d0BEfb37A136C7eabE38f402aDB008</a></div>
+            <div class="c212"><span class="c213">wizard, copy 2:</span> <a class="c214" href="https://explorer-bradbury.genlayer.com/address/0x613f334c9FBAA4fA354c7aAAe0eb9Bff1F8eBa02" target="_blank" rel="noopener">0x613f334c9FBAA4fA354c7aAAe0eb9Bff1F8eBa02</a></div>
+            <div class="c212"><span class="c213">company, copy 1:</span> <a class="c214" href="https://explorer-bradbury.genlayer.com/address/0xC8Cc6AD350F462d8d87b7AeC787e6bDc1a7da30E" target="_blank" rel="noopener">0xC8Cc6AD350F462d8d87b7AeC787e6bDc1a7da30E</a></div>
+            <div class="c212"><span class="c213">company, copy 2:</span> <a class="c214" href="https://explorer-bradbury.genlayer.com/address/0xb6BDEc0e951d13fCBe57D9a2236543C9099042CD" target="_blank" rel="noopener">0xb6BDEc0e951d13fCBe57D9a2236543C9099042CD</a></div>
+            <div class="c212"><span class="c213">dvB, copy 1:</span> <a class="c214" href="https://explorer-bradbury.genlayer.com/address/0xB7BD7c379c0d7410E7deaB1f5A1E631CfC94adAC" target="_blank" rel="noopener">0xB7BD7c379c0d7410E7deaB1f5A1E631CfC94adAC</a></div>
+            <div class="c212"><span class="c213">dvB, copy 2:</span> <a class="c214" href="https://explorer-bradbury.genlayer.com/address/0x1bcA7136858fEf429494eBfA96B779cbE1f5a5d3" target="_blank" rel="noopener">0x1bcA7136858fEf429494eBfA96B779cbE1f5a5d3</a></div>
+            <div class="c212"><span class="c213">dvA (control, no LLM):</span> <a class="c214" href="https://explorer-bradbury.genlayer.com/address/0x5026F1cFD503626913bc0dC9F094418863785A79" target="_blank" rel="noopener">0x5026F1cFD503626913bc0dC9F094418863785A79</a></div>
+            <div class="c212"><span class="c213">company, retired copy:</span> <a class="c214" href="https://explorer-bradbury.genlayer.com/address/0x4cCd16c93eAD8DdF65ddc3646b1fF5FB8b82793d" target="_blank" rel="noopener">0x4cCd16c93eAD8DdF65ddc3646b1fF5FB8b82793d</a></div>
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="c29">
+        <legend class="c30">5. Limits</legend>
+        <div class="c215">
+          <div>- Bradbury is a testnet. Validator software and contracts can change without notice.</div>
+          <div>- The campaign covers four fixed contracts. It does not represent every contract.</div>
+          <div>- One campaign a day gives about 80 transactions per contract, so intervals are wide.</div>
+          <div>- There are no alerts in this version.</div>
+          <div>- The latency of transactions that cross an epoch change is not reported yet.</div>
+          <div>- Network counts depend on the RPC. Gaps in RPC data are listed in Events.</div>
+          <div>- Operator names are declared by the operators on chain and are not verified.</div>
+        </div>
+      </fieldset>
+      <fieldset class="c29">
+        <legend class="c30">6. Public API</legend>
+        <div class="c206">
+          <div>Every number on this page comes from a read-only JSON API on this same address. It needs no key and can be called from any origin. It returns counts and rates. Intervals are not included: compute them from the counts (Clopper-Pearson, <a href="stats.js" target="_blank" rel="noopener">stats.js</a>).</div>
+          <div><div class="c207">Views</div><div>Endpoints with <span class="c214">view</span> take <span class="c214">view=epoch:168</span> (one epoch) or <span class="c214">view=24h</span> (the last 24 hours). Without it they answer for the current epoch.</div></div>
+          <div><div class="c207">Endpoints</div>
+            <div class="c208">
+              <div><span class="c214">GET /api/meta</span>: last update per source, current epoch, list of epochs, RPC state.</div>
+              <div><span class="c214">GET /api/tape</span>: the last 40 network transactions with their result.</div>
+              <div><span class="c214">GET /api/overview?view=</span>: first-attempt acceptance of the campaign (with LLM and control) and of the network, votes by type, retry causes, time to acceptance, validator counts, last campaign.</div>
+              <div><span class="c214">GET /api/contracts?view=</span>: reference contracts, every contract of the network with its LLM label, and contracts that stopped making progress.</div>
+              <div><span class="c214">GET /api/operators?view=</span>: one row per validator: votes by type on campaign contracts with LLM, on the control and on the whole network, leader rounds and leader timeouts, status, stake, selection weight, first-leader counts against the expected ones, and a series by epoch.</div>
+              <div><span class="c214">GET /api/events?view=&amp;type=&amp;before=</span>: the event log, 50 per page. <span class="c214">type</span> is one of epochs, validators, contracts, campaigns, rpc. <span class="c214">before</span> is the <span class="c214">next</span> value of the previous page.</div>
+              <div><span class="c214">GET /api/badge/{contract}.svg</span>: an image with the first-attempt acceptance of a contract in the current epoch, to embed in a README or a page. Contracts has a [badge] button on each network contract that copies its Markdown.</div>
+              <div><span class="c214">GET /api/export?epoch=&amp;after=</span>: every transaction of an epoch with its attempts and votes, 200 per page. <span class="c214">after</span> is the <span class="c214">next</span> value of the previous page. The columns are documented in the README of the repository.</div>
+            </div>
+          </div>
+          <div><div class="c207">Cache and limits</div><div>Responses are cached: 60 seconds for /api/meta and /api/tape, 300 seconds for the rest. Requests answered from the cache are not limited. Requests that are not in the cache are limited to 120 per minute from one address. Over the limit the API answers 429 with a Retry-After header. For bulk use, take the daily files of the data branch instead.</div></div>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</main>
+<footer class="c216">
+  <div class="c217">
+    <button class="c218" type="button" data-go-tab="5">Methodology</button><span class="c7">·</span>
+    <a href="https://github.com/randyparrs/Probe.EXE" target="_blank" rel="noopener">Source code</a><span class="c7">·</span>
+    <a href="https://github.com/randyparrs/probe-exe-preregistration" target="_blank" rel="noopener">Pre-registration</a><span class="c7">·</span>
+    <a href="https://github.com/randyparrs/Probe.EXE/tree/data" target="_blank" rel="noopener">Data</a><span class="c7">·</span>
+    <span>License: MIT</span>
+  </div>
+</footer>
+</div>
+</body>
+</html>
