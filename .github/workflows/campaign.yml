@@ -8,7 +8,8 @@ name: Daily campaign
 # visits 8 different hours over 8 days.
 #
 # The campaign wallet key is a GitHub Actions secret of a testnet-only wallet. Logs show only
-# public data. Until the data store is live, results are kept as a workflow artifact.
+# public data. The page counts the campaign from the consensus events of its transactions, read by
+# the collector (collector/worker); the rows this run records are also kept as a workflow artifact.
 
 on:
   workflow_dispatch:
