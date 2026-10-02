@@ -1,0 +1,52 @@
+
+== pairs (first-attempt acceptance, METRICAS v5)
+  v2   wizard   measured 40/50 =  80.0 % (CP 66.3-90.0)  primary 80.8  secondary 81.9  naive 82.0  inside
+  v2   company  measured 26/50 =  52.0 % (CP 37.4-66.3)  primary 55.9  secondary 54.6  naive 58.0  inside
+  v2   dvB      measured 41/50 =  82.0 % (CP 68.6-91.4)  primary 82.9  secondary 82.8  naive 84.0  inside
+  v3   wizard   measured 33/50 =  66.0 % (CP 51.2-78.8)  primary 76.2  secondary 76.2  tertiaryLocalOnlyS1 100.0  tertiaryLocalOnlyS2 100.0  naive 81.0  inside  [epoch change]
+  v3   company  measured 10/45 =  22.2 % (CP 11.2-37.1)  primary 58.6  secondary 59.5  tertiaryLocalOnlyS1 100.0  tertiaryLocalOnlyS2 100.0  naive 55.0  OUTSIDE  [epoch change]
+  v3   dvB      measured 45/50 =  90.0 % (CP 78.2-96.7)  primary 76.2  secondary 76.2  tertiaryLocalOnlyS1 100.0  tertiaryLocalOnlyS2 100.0  naive 83.0  OUTSIDE  [epoch change]
+  v4   wizard   measured 36/50 =  72.0 % (CP 57.5-83.8)  primary 73.9  secondary 74.0  naive 76.0  inside
+  v4   company  measured 13/39 =  33.3 % (CP 19.1-50.2)  primary 37.8  secondary 33.2  naive 44.1  inside
+  v4   dvB      measured 37/50 =  74.0 % (CP 59.7-85.4)  primary 74.3  secondary 74.2  naive 85.3  inside
+  v5   wizard   measured 41/50 =  82.0 % (CP 68.6-91.4)  primary 77.2  secondary 77.4  naive 75.0  inside
+  v5   company  measured 10/44 =  22.7 % (CP 11.5-37.8)  primary 38.9  secondary 34.5  naive 41.4  OUTSIDE
+  v5   dvB      measured 43/50 =  86.0 % (CP 73.3-94.2)  primary 77.7  secondary 77.9  naive 82.5  inside
+  v6   wizard   measured 36/50 =  72.0 % (CP 57.5-83.8)  primary 77.1  secondary 77.2  naive 76.4  inside  [epoch change]
+  v6   company  measured 31/50 =  62.0 % (CP 47.2-75.3)  primary 32.8  secondary 26.6  naive 37.7  OUTSIDE  [epoch change]
+  v6   dvB      measured 42/50 =  84.0 % (CP 70.9-92.8)  primary 77.4  secondary 77.3  naive 83.2  inside  [epoch change]
+
+== criterion, all windows (15 pairs)
+  primary (C, judged): inside the interval 11/15 (needs 12); MAE 9.5 points vs naive 10.0 points
+  secondary (reference, not judged): inside the interval 12/15 (needs 12); MAE 9.4 points vs naive 10.0 points
+  tertiaryLocalOnlyS1 (reference, not judged): inside the interval 0/3 (needs 3); MAE 40.6 points vs naive 18.3 points
+  tertiaryLocalOnlyS2 (reference, not judged): inside the interval 0/3 (needs 3); MAE 40.6 points vs naive 18.3 points
+  verdict for the primary model: FAIL
+
+== criterion, without windows that crossed an epoch change (9 pairs)
+  primary (C, judged): inside the interval 8/9 (needs 8); MAE 4.6 points vs naive 7.2 points
+  secondary (reference, not judged): inside the interval 9/9 (needs 8); MAE 3.6 points vs naive 7.2 points
+  verdict for the primary model: PASS
+
+== leader timeout at the first attempt, primary model
+  v2   wizard   predicted  16.2 %  measured 10/50 (CP 10.0-33.7) inside
+  v2   company  predicted  16.2 %  measured 12/50 (CP 13.1-38.2) inside
+  v2   dvB      predicted  16.1 %  measured 9/50 (CP 8.6-31.4) inside
+  v3   wizard   predicted  21.9 %  measured 15/50 (CP 17.9-44.6) inside
+  v3   company  predicted  22.0 %  measured 13/45 (CP 16.4-44.3) inside
+  v3   dvB      predicted  22.0 %  measured 5/50 (CP 3.3-21.8) OUTSIDE
+  v4   wizard   predicted  23.4 %  measured 13/50 (CP 14.6-40.3) inside
+  v4   company  predicted  23.3 %  measured 5/39 (CP 4.3-27.4) inside
+  v4   dvB      predicted  23.4 %  measured 12/50 (CP 13.1-38.2) inside
+  v5   wizard   predicted  20.5 %  measured 8/50 (CP 7.2-29.1) inside
+  v5   company  predicted  20.5 %  measured 12/44 (CP 15.0-42.8) inside
+  v5   dvB      predicted  20.4 %  measured 7/50 (CP 5.8-26.7) inside
+  v6   wizard   predicted  20.8 %  measured 11/50 (CP 11.5-36.0) inside
+  v6   company  predicted  20.8 %  measured 9/50 (CP 8.6-31.4) inside
+  v6   dvB      predicted  20.9 %  measured 8/50 (CP 7.2-29.1) inside
+
+== calibration, primary model (10-point bins of the prediction)
+   30- 40 %: 3 pairs, mean predicted 36.5 %, measured 54/133 = 40.6 % (CP 32.2-49.5)
+   50- 60 %: 2 pairs, mean predicted 57.2 %, measured 36/95 = 37.9 % (CP 28.1-48.4)
+   70- 80 %: 8 pairs, mean predicted 76.3 %, measured 313/400 = 78.2 % (CP 73.9-82.2)
+   80- 90 %: 2 pairs, mean predicted 81.8 %, measured 81/100 = 81.0 % (CP 71.9-88.2)

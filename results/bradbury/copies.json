@@ -1,0 +1,124 @@
+{
+  "wizard": [
+    {
+      "address": "0x27490261a2d0BEfb37A136C7eabE38f402aDB008",
+      "deployHash": "0x56cbf9fb704745ae094d67fbac29f3be70e95c695c528f230f9dc41a2b4874f5",
+      "deployedAt": "2026-09-26",
+      "retired": false
+    },
+    {
+      "address": "0x613f334c9FBAA4fA354c7aAAe0eb9Bff1F8eBa02",
+      "deployHash": "0x028baafda8a91ef19f961f38ed372047a008766ccfe78fc7b7f1f3b468a23213",
+      "deployedAt": "2026-09-27T19:43:44.244Z",
+      "retired": false
+    },
+    {
+      "address": "0x8F9eDA4cB52a17Ff696F47fD4cE0Ab17AA092157",
+      "deployHash": "0x9b4e278d50181240a251f722fad46e2b6b372dcf73bf1dc01a4b943b5f1f0749",
+      "deployedAt": "2026-09-27T19:43:58.268Z",
+      "retired": false
+    },
+    {
+      "address": "0xeb116d62aF9f53449164F7c76Fb656f13B267330",
+      "deployHash": "0xaea04e73890ceb83883f06e9b9409e0cf8c393927c8d7dfb59ca65dbea31c44b",
+      "deployedAt": "2026-09-27T19:45:57.088Z",
+      "retired": false
+    }
+  ],
+  "company": [
+    {
+      "address": "0x4cCd16c93eAD8DdF65ddc3646b1fF5FB8b82793d",
+      "deployHash": "0x68dabb5938852e51dfe14901da41cebc89787877c64b02aa942f6f8678a237b7",
+      "deployedAt": "2026-09-26",
+      "retired": true,
+      "retiredAt": "2026-09-29",
+      "retiredReason": "stuck since the epoch change 165->166 of window v3: its 5 tx from 13:54 UTC ended IDLE or CANCELED while copy 0xC8Cc6A kept working (decision 11.10); gets 1 probe tx per window outside the metrics"
+    },
+    {
+      "address": "0xC8Cc6AD350F462d8d87b7AeC787e6bDc1a7da30E",
+      "deployHash": "0x58dcd5f8fe43f13b8f4834eb91698d3ef8afd5ebb76d706562383ff5e180ddf2",
+      "deployedAt": "2026-09-27T19:43:50.752Z",
+      "retired": false
+    },
+    {
+      "address": "0xb6BDEc0e951d13fCBe57D9a2236543C9099042CD",
+      "deployHash": "0xd8a7b0f08a7e7e0bc604c3cf2a7405c9af83771861de5d6f082c6ca8b832f726",
+      "deployedAt": "2026-09-27T19:43:58.720Z",
+      "retired": false
+    },
+    {
+      "address": "0x20F36D22599608B5C80d1791B83d1148d10A0165",
+      "deployHash": "0xcf9b5872d154291e4862830ecc7f7728f8a276dcd84777bee2c54c37e8cf8ad0",
+      "deployedAt": "2026-09-27T19:44:02.259Z",
+      "retired": false
+    }
+  ],
+  "tribunal": [
+    {
+      "address": "0xc263179aBEf26F9Ca8476A1383De6E365F308b35",
+      "deployHash": "0x0b92b074cb868edd006f9fd737323613ee3c79cf362dea32b73a27245cc530b9",
+      "deployedAt": "2026-09-26",
+      "retired": false
+    },
+    {
+      "address": "0x025b5e96B8C136428DB8E82A4247f9099bdf4B6B",
+      "deployHash": "0x6d9774d6ce82cb22cf63fbdae2b26aee6f27c300a6ae36fa564316e872b1ce0b",
+      "deployedAt": "2026-09-27T19:43:52.492Z",
+      "retired": false
+    },
+    {
+      "address": "0x305F4079C986998fee6B90cF81b4398a30885C85",
+      "deployHash": "0x786a102b7af11bda5f45ec97cd7aa2906e06a1785ad57e10d5605c68dd8ed2c4",
+      "deployedAt": "2026-09-27T19:44:05.063Z",
+      "retired": false
+    },
+    {
+      "address": "0x8061e87A30359D676D732c3B2CDEDeD7360aa27f",
+      "deployHash": "0x6cf7f7566603a617d0bfcca12f6dda6aabcd35356915730762bbd71de23c877a",
+      "deployedAt": "2026-09-27T19:44:07.796Z",
+      "retired": false
+    }
+  ],
+  "dvA": [
+    {
+      "address": "0x5026F1cFD503626913bc0dC9F094418863785A79",
+      "deployHash": "0xcc3b5bd01bdbe92482cac089f685900739b2f2a724c43c0749cf667622b54631",
+      "deployedAt": "2026-09-27T21:51:56.453Z",
+      "retired": false
+    },
+    {
+      "address": "0xf0628C3db1671518B92c4Baf85FE797F80ecb4Aa",
+      "deployHash": "0xde5dfe1f31528234036c033226e605728eaf39ac1128f8cce5b15f8d2911d070",
+      "deployedAt": "2026-09-27T21:54:06.804Z",
+      "retired": false
+    }
+  ],
+  "dvB": [
+    {
+      "address": "0xB7BD7c379c0d7410E7deaB1f5A1E631CfC94adAC",
+      "deployHash": "0x51c01af4da82ea504672d0f1f26f9dddc6c1196e4fd799fb7c3e7824bf9e1001",
+      "deployedAt": "2026-09-27T21:52:02.701Z",
+      "retired": false
+    },
+    {
+      "address": "0x1bcA7136858fEf429494eBfA96B779cbE1f5a5d3",
+      "deployHash": "0xb543cc0fbddc09717634c2c94270e9915f69554867682001126f692bf31ee1b9",
+      "deployedAt": "2026-09-27T21:52:12.913Z",
+      "retired": false
+    }
+  ],
+  "dvC": [
+    {
+      "address": "0xce0708c70AB66191775b0eAEBbb2B4Db39Ad37Ba",
+      "deployHash": "0xad264cd5449988e68f99d69a1eeefdb7096190f345efefa0a3b1a612c2ba186c",
+      "deployedAt": "2026-09-27T21:52:03.599Z",
+      "retired": false
+    },
+    {
+      "address": "0x1df4E126148a27A37AF59c9AADC3adC690371608",
+      "deployHash": "0xe6fc66e51f6f9fa127d26fd047e03ce20a9cb610331a54e8b1b99055b924799b",
+      "deployedAt": "2026-09-27T21:54:13.874Z",
+      "retired": false
+    }
+  ]
+}
