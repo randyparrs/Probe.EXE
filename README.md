@@ -51,6 +51,13 @@ taken from a repository with no license, so it is published with those lines rep
 `python harness/restore_contracts.py` downloads the original at the exact commit, puts the lines
 back and checks that the result has the pre-registered SHA-256.
 
+Two things in `results/` are in Spanish and are published as they were recorded:
+
+- Run tags starting with `prueba` (Spanish for "test") mark test runs. They are kept in the raw
+  data unmodified and are not used in any of the published analyses.
+- `results/bradbury/validation-final.txt` is the literal output of the frozen evaluation script,
+  which labels the metric version as METRICAS v5 (Spanish). It is published unmodified.
+
 ## Data files
 
 The [`data` branch](https://github.com/randyparrs/Probe.EXE/tree/data) holds every transaction the
