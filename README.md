@@ -200,7 +200,8 @@ counts (Clopper-Pearson, `probe-static/stats.js`).
 | `GET /api/export?epoch=&after=` | Every transaction of an epoch with its attempts and votes, 200 per page. `after`: the `next` value of the previous page. Columns: see Data files. |
 
 `view` is `epoch:168` (one epoch) or `24h` (the last 24 hours); without it the answer is for the
-current epoch.
+current epoch. Any other `view` is answered with 400 and a message with the two valid formats; a
+`type` that is not in the list is also answered with 400.
 
 ```bash
 curl "https://probe-exe.pages.dev/api/operators?view=epoch:168"

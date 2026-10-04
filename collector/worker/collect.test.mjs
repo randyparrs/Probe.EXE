@@ -19,7 +19,7 @@ const IDENTITY = [...["moniker", "logoUri", "website", "description", "email", "
 import { toGen, weightOf } from "../core/staking.js";
 import TABLE from "../core/consensus-events.js";
 import { EVENTS_PAGE, badge, campaignSlot, campaigns, contracts, events, exportPage, failedCampaigns, lastCampaign, latency, operators, overview,
-  rpcIncidents, stalledContracts, tally, viewFilter, viewRange } from "./src/api.js";
+  rpcIncidents, stalledContracts, tally, validView, viewFilter, viewRange } from "./src/api.js";
 import { BACK_SPAN, MAX_SPAN, STALL_SECONDS, collect, eligibleMembers, nextEligibleSet, rpcClient } from "./src/collect.js";
 import { d1Store } from "./src/store.js";
 
@@ -375,6 +375,8 @@ test("the API answers of a view: campaign against its control, retries, latency 
   assert.equal(viewFilter("24h", 5000, meta).view, "24h");
   assert.equal(viewFilter("epoch:9", 5000, meta).params[0], 9);
   assert.equal(viewFilter(undefined, 5000, { epoch: null, epochs: [] }), null);
+  assert.deepEqual([null, "", "24h", "epoch:168"].map(validView), [true, true, true, true]);
+  assert.deepEqual(["bad", "epoch:", "epoch:-1", "epoch:1x", "24H", "48h"].map(validView), [false, false, false, false, false, false]);
 
   const [rows, campTx, voters, lastTs] = [await s2.contractTotals(filter), await s2.campaignTx(filter), await s2.campaignVoters(filter), await s2.lastCampaign(167)];
   const around = await s2.campaignAround(167, lastTs);

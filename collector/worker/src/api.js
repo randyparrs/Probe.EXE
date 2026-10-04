@@ -5,6 +5,9 @@ import { toGen, weightOf } from "../../core/staking.js";
 
 export const CAMPAIGN_RUNNING_SECONDS = 600;   // a campaign with an event in the last ten minutes is still running
 
+// A view in the query is "epoch:N" or "24h"; an absent or empty one is the current epoch.
+export const validView = (view) => !view || view === "24h" || /^epoch:\d{1,9}$/.test(view);
+
 // view: "epoch:168" or "24h" (clock hours, so up to one hour more at the edge); default: the current
 // epoch. Returns the filter over a table aliased h with epoch and hour columns, or null with no data.
 export function viewFilter(view, now, meta) {

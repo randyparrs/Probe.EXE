@@ -3,7 +3,7 @@
 
 import campaign from "../../campaign/contracts.json";
 import { EVENT_GROUPS, EXPORT_PAGE, OPERATOR_EPOCHS, SERIES_EPOCHS, badge, campaigns, contracts, events, exportPage, failedCampaigns, operators,
-  overview, rpcIncidents, viewFilter, viewRange } from "./api.js";
+  overview, rpcIncidents, validView, viewFilter, viewRange } from "./api.js";
 import { collect, rpcClient } from "./collect.js";
 import { d1Store } from "./store.js";
 
@@ -90,8 +90,10 @@ export default {
 
     // a view (an epoch or the last 24 hours): the network and the campaign against its control
     if (["/api/overview", "/api/contracts", "/api/operators", "/api/events"].includes(url.pathname)) {
+      const view = url.searchParams.get("view");
+      if (!validView(view)) return json({ error: "unknown view: use epoch:N or 24h" }, 0, 400);
       const m = await store.meta(now);
-      const filter = viewFilter(url.searchParams.get("view"), now, m);
+      const filter = viewFilter(view, now, m);
       if (!filter) return json({ error: "no data yet" }, 0, 503);
       const range = viewRange(filter.view, now, m);
 
