@@ -62,8 +62,8 @@ contract ([docs/VALIDATION-REPORT.md](docs/VALIDATION-REPORT.md),
 - **Daily data files** (`collector/export/`, `.github/workflows/export.yml`): every transaction the
   page has observed, in the `data` branch.
 
-`npm test` runs the tests of the collector, the API, the page function and the export; a workflow
-runs them on every push (`.github/workflows/test.yml`).
+`npm ci` and then `npm test` run the tests of the collector, the API, the page function and the
+export (Node.js 22 or later); a workflow runs them on every push (`.github/workflows/test.yml`).
 
 ## Phases
 
@@ -79,6 +79,10 @@ page existed:
 The code of those measurements is in `scripts/` (campaign launcher, reports, prediction model,
 evaluation), `harness/` and `tests/` (the local module) and `contracts/` (the measured contracts).
 The epoch changes of that period are in [docs/EPOCHS.md](docs/EPOCHS.md).
+
+`tests/test_local_module.py` is not a unit test: it is the run of the local module, with real
+models called through OpenRouter at a cost. It needs `OPENROUTER_API_KEY` and genlayer-test 0.29.x
+(how to run it is at the top of the file); without the key every pass is skipped.
 
 ## Data and pre-registration
 
@@ -111,11 +115,21 @@ taken from a repository with no license, so it is published with those lines rep
 `python harness/restore_contracts.py` downloads the original at the exact commit, puts the lines
 back and checks that the result has the pre-registered SHA-256.
 
-The reports in `results/bradbury/` can be produced again from the published data:
-`scripts/network_report.py` (`network-report-v1.txt` to `v6.txt`), `scripts/evaluate_validation.py`
-(`validation-final.txt`), `scripts/sensitivity_events.py` (`sensitivity-events.txt`) and
-`scripts/phase0_annexes.py` (`annex-phase0-v5.txt` and `annex-reread-v4.txt`, from the rows of the
-Phase 0 campaigns: `campaign-<contract>.jsonl`, `-r2.jsonl`, `-dv1.jsonl` and `-final.jsonl`).
+The reports in `results/bradbury/` can be produced again from the published data, from the root of
+this repository and with the pre-registration cloned next to it:
+
+```bash
+python scripts/network_report.py --tag v1 --llm wizard,company,dvB --control dvA
+python scripts/evaluate_validation.py --windows v2,v3,v4,v5,v6 --prereg-dir ../probe-exe-preregistration
+python scripts/sensitivity_events.py
+python scripts/phase0_annexes.py v5
+python scripts/phase0_annexes.py reread
+```
+
+They print, in that order, `network-report-v1.txt` (`--tag v2` to `v6` for the other five),
+`validation-final.txt`, `sensitivity-events.txt`, `annex-phase0-v5.txt` and `annex-reread-v4.txt`.
+The annexes are built from the rows of the Phase 0 campaigns: `campaign-<contract>.jsonl`,
+`-r2.jsonl`, `-dv1.jsonl` and `-final.jsonl`.
 
 Two things in `results/` are in Spanish and are published as they were recorded:
 
