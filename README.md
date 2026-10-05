@@ -51,8 +51,9 @@ from the published data by `python scripts/findings.py`.
 
 ## What it does
 
-- **Daily campaign** (`collector/campaign/`, `.github/workflows/campaign.yml`): once a day, at an hour
-  that rotates across 8 slots, it sends calls to reference contracts (three that call an LLM and one
+- **Daily campaign** (`collector/campaign/`, `.github/workflows/campaign.yml`): once per epoch (about
+  a day), in a window that rotates across 8 hours of the epoch (`collector/core/schedule.js`), it
+  sends calls to reference contracts (three that call an LLM and one
   control that does not, `collector/campaign/contracts.json`) and follows each transaction until it is
   accepted or ends without consensus. An external cron (cron-job.org) triggers the workflow; the
   campaign uses a testnet-only wallet.

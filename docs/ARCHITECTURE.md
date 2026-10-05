@@ -48,7 +48,7 @@ flowchart LR
 
 | Component | Where | What it does |
 |---|---|---|
-| Daily campaign | `collector/campaign/`, `.github/workflows/campaign.yml` | Sends 80 calls to each of four reference contracts (three that call an LLM, one control that does not) in one window a day. |
+| Daily campaign | `collector/campaign/`, `.github/workflows/campaign.yml` | Sends 80 calls to each of four reference contracts (three that call an LLM, one control that does not) in one window per epoch (about a day). |
 | Collector | `collector/worker/`, `collector/core/` | A Cloudflare Worker on a Cron Trigger. Every minute it reads the new consensus events and the validator data, and updates the database. It also answers the API. |
 | Database | Cloudflare D1, `collector/worker/schema.sql` | Raw events, the state of each transaction, hourly counters, validators, eligible sets, the event log. |
 | Pages Function | `pages/functions/api/[[path]].js` | Serves `/api/*` from the page's address: answers from the cache or forwards to the collector. |
@@ -60,9 +60,12 @@ flowchart LR
 GitHub's own schedule can run late or skip runs, so both workflows are started by an external cron
 (cron-job.org) through the `workflow_dispatch` API.
 
-- **Campaign**: dispatched every 3 hours. Each dispatch checks whether it is the slot of the day
-  (`collector/campaign/slot.mjs`, day of the year modulo 8) and exits in seconds when it is not, so
-  the campaign visits eight different hours over eight days.
+- **Campaign**: dispatched every 3 hours. Each dispatch checks whether the current epoch is due a
+  campaign (`collector/campaign/slot.mjs`, rule in `collector/core/schedule.js`): the window
+  starts (epoch number modulo 8) x 3 hours after the epoch starts, so the campaign visits eight
+  different hours over eight epochs. The epoch, its start and its campaigns come from the public
+  API; when it does not answer, the epoch and its start are read from the staking contract and the
+  campaign runs only inside the window. A dispatch that is not due exits in seconds.
 - **Export**: dispatched once a day.
 - **Collector**: a Cloudflare Cron Trigger, every minute.
 
@@ -92,8 +95,9 @@ The campaign workflow only sends transactions; it does not write to the database
 recognizes a campaign transaction among the network ones: its recipient is a copy of a reference
 contract (`collector/campaign/contracts.json`) and its sender is the campaign wallet (read with
 `eth_getTransactionByHash`). Those transactions are counted a second time under the campaign
-source, split between contracts with LLM calls and the control. A day whose slot passes with no
-campaign transaction is shown as a failed campaign.
+source, split between contracts with LLM calls and the control. An epoch that ends with no
+campaign transaction is shown as a failed campaign, and a campaign that started after its window
+closed as late.
 
 ### [CHAIN] Validators and epochs
 

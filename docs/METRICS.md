@@ -467,9 +467,21 @@ implement them.
   `collector/worker/src/collect.js`). A transaction that stays idle or queued counts as one
   without a vote.
   The contract recovers at the next vote.
+- **Campaign schedule (2026-10-06).** One campaign per epoch, in a 3-hour window that starts
+  (epoch number mod 8) x 3 hours after the epoch starts, so over 8 epochs it visits 8 different
+  hours. An epoch that lasts more than a day gets a further window every 24 hours; one counts only
+  when the epoch has lasted more than 25 hours by then, because epochs last about 24 h 2 min. The
+  external cron dispatches every 3 hours, so every window gets one dispatch. A window that passes
+  with fewer campaigns than windows is made up at the next dispatch, and that campaign is late
+  (`collector/core/schedule.js`). Until 2026-10-05 the campaign ran in a 3-hour slot of the UTC
+  day (day of the year mod 8). That slot is not tied to the epochs: the campaign of 2026-10-04
+  (16:01 UTC) fell in epoch 170 and the one of 2026-10-05 (19:01 UTC) in epoch 172, so epoch 171
+  had none.
 - **Campaigns.** Running: one of its transactions had an event in the last 10 minutes. Two
-  campaigns: campaign transactions created more than 30 minutes apart. Failed: the 3-hour slot of
-  the day ended more than 30 minutes ago and no campaign transaction was seen in it
+  campaigns: campaign transactions created more than 30 minutes apart. Late: the n-th campaign of
+  an epoch started after the n-th window of the epoch closed. Failed: an epoch that started on or
+  after 2026-10-06 ended more than 30 minutes ago with no campaign transaction in it; until
+  2026-10-05, the 3-hour slot of the day ended more than 30 minutes ago with none
   (`CAMPAIGN_RUNNING_SECONDS`, `CAMPAIGN_GAP_SECONDS`, `CAMPAIGN_GRACE_SECONDS` in
   `collector/worker/src/api.js`).
 - **RPC incident.** Opens when two runs of the collector in a row get an answer that is not JSON and
