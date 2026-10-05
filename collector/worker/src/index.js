@@ -1,7 +1,7 @@
 // Cloudflare Worker of Probe.EXE. A Cron Trigger runs the passive collector every minute; the
 // fetch handler serves read-only JSON to the page (what it answers is built in api.js).
 
-import campaign from "../../campaign/contracts.json";
+import campaign from "../../campaign/contracts.json" with { type: "json" };
 import { EVENT_GROUPS, EXPORT_PAGE, OPERATOR_EPOCHS, SERIES_EPOCHS, badge, campaigns, contracts, events, exportPage, failedCampaigns, operators,
   knownEpoch, overview, rpcIncidents, validBefore, validView, viewFilter, viewRange } from "./api.js";
 import { collect, rpcClient } from "./collect.js";

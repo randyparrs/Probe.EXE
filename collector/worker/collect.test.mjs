@@ -22,6 +22,7 @@ import { EVENTS_PAGE, badge, campaignSlot, campaigns, contracts, events, exportP
   knownEpoch, rpcIncidents, stalledContracts, tally, validBefore, validView, viewFilter, viewRange } from "./src/api.js";
 import { ADD_TRANSACTION, BACK_SPAN, MAX_SPAN, STALL_SECONDS, collect, eligibleMembers, nextEligibleSet, recipientOf as recipientOfInput, rpcClient } from "./src/collect.js";
 import { d1Store } from "./src/store.js";
+import { fakeD1 } from "./fake-d1.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fx = JSON.parse(readFileSync(join(here, "..", "core", "fixtures", "two-transactions.json"), "utf8"));
@@ -38,29 +39,6 @@ const WALLET = "0x" + "aa".repeat(20), STRANGER = "0x" + "bb".repeat(20);
 // A goes to the control and is sent by the campaign wallet; B goes to an LLM contract, sent by someone else
 const REFERENCE = new Map([[recipientOf(A), { name: "dvA", llm: false }], [recipientOf(B), { name: "wizard", llm: true }]]);
 const SENDER = new Map([[STARTS.find((ev) => ev.args.txId === A).evmHash, WALLET], [STARTS.find((ev) => ev.args.txId === B).evmHash, STRANGER]]);
-
-// the subset of the D1 API that store.js uses
-function fakeD1(db) {
-  const stmt = (sql, params = []) => ({
-    bind: (...p) => stmt(sql, p),
-    async first(col) { const row = db.prepare(sql).get(...params); return row == null ? null : col ? row[col] : row; },
-    async all() { return { success: true, results: db.prepare(sql).all(...params) }; },
-    runSync() {
-      if (/^\s*SELECT/i.test(sql)) return { success: true, results: db.prepare(sql).all(...params) };
-      return { success: true, results: [], meta: { rows_written: Number(db.prepare(sql).run(...params).changes) } };
-    },
-    async run() { return this.runSync(); },
-  });
-  return {
-    prepare: (sql) => stmt(sql),
-    // like D1: the statements of a batch run as one transaction, with nothing else in between
-    async batch(list) {
-      db.exec("BEGIN");
-      try { const out = list.map((s) => s.runSync()); db.exec("COMMIT"); return out; }
-      catch (err) { db.exec("ROLLBACK"); throw err; }
-    },
-  };
-}
 
 function setup() {
   const db = new DatabaseSync(":memory:");
