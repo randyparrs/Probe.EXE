@@ -2,11 +2,11 @@
 // The daily data export against a fake page: which files it writes and what the commit says.
 
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { COLUMNS, changes, exportAll, fromJsonl, toCsv } from "./export.mjs";
+import { COLUMNS, RULES, changes, exportAll, fromJsonl, toCsv } from "./export.mjs";
 
 const tx = (n, epoch, status, more = {}) => ({ tx_id: "0x" + String(n).padStart(64, "0"), epoch, contract: "0xc", llm: "llm", campaign: null, created: 1000 + n,
   created_block: 10 + n, status, accepted: status === "first" ? 1010 + n : null, accept_seconds: status === "first" ? 10 : null, leader_timeouts: 0, rotations: 0,
@@ -53,7 +53,7 @@ test("the export writes one pair of files per epoch, rewrites what changed and s
   assert.equal(await run(1790899200), "Data export 2026-10-02\n\nepoch 167: new, 3 rows\nepoch 168: new, 1 rows\n");
   assert.deepEqual(readdirSync(dir).sort(), ["epoch-167.csv", "epoch-167.jsonl", "epoch-168.csv", "epoch-168.jsonl", "index.json"]);
   assert.deepEqual(fromJsonl(readFileSync(join(dir, "epoch-167.jsonl"), "utf8")), closed);     // three rows over two pages, with their attempts
-  assert.deepEqual(JSON.parse(readFileSync(join(dir, "index.json"), "utf8")), { updated: "2026-10-02T00:00:00.000Z", files: [
+  assert.deepEqual(JSON.parse(readFileSync(join(dir, "index.json"), "utf8")), { updated: "2026-10-02T00:00:00.000Z", rules: RULES.version, files: [
     { epoch: 168, csv: "epoch-168.csv", jsonl: "epoch-168.jsonl", rows: 1 }, { epoch: 167, csv: "epoch-167.csv", jsonl: "epoch-167.jsonl", rows: 3 }] });
 
   assert.equal(await run(1790985600), null);                           // nothing changed: nothing written
@@ -85,4 +85,19 @@ test("a new column rewrites every file and is said once; a corrected creation ti
   assert.equal(await run(1790985600), "Data export 2026-10-03\n\nNew column in every file: queue_seconds (see Data files in the README).\n"
     + "epoch 167 (closed) rewritten: 1 with a different creation time\nepoch 168 (in progress): 1 rows\n");
   assert.equal(readFileSync(join(dir, "epoch-167.csv"), "utf8").split("\n")[0].split(",").at(-1), "queue_seconds");
+});
+
+test("a change of the counting rules is said once, before the epochs it rewrites", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "probe-export-"));
+  const closed = [tx(1, 167, "first"), tx(2, 167, "pending")];
+  const epochs = new Map([[167, closed]]);
+  const run = (now) => exportAll({ base: "http://page", dir, now, fetchFn: fakePage(epochs, 168) });
+  await run(1790899200);
+  const index = join(dir, "index.json");
+  writeFileSync(index, JSON.stringify({ ...JSON.parse(readFileSync(index, "utf8")), rules: "2026-10-01" }));   // written under older rules
+  epochs.set(167, [tx(1, 167, "first"), tx(2, 167, "none")]);
+  assert.equal(await run(1790985600), `Data export 2026-10-03\n\nCounting rules of ${RULES.version} (docs/METRICS.md): ${RULES.summary}.\n`
+    + "epoch 167 (closed) rewritten: 1 went from pending to none\n");
+  assert.equal(JSON.parse(readFileSync(index, "utf8")).rules, RULES.version);
+  assert.equal(await run(1791072000), null);                            // said once
 });

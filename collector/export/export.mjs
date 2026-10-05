@@ -12,6 +12,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// The counting rules the rows follow (docs/METRICS.md), kept in index.json. A change is said once in
+// the commit message; the rows it changes are rewritten like any other change.
+export const RULES = {
+  version: "2026-10-05",
+  summary: "a decision other than an acceptance is final only once the transaction is finalized, a transaction "
+    + "finalized with no acceptance is no consensus, and each vote belongs to the attempt whose committee contains the voter",
+};
+
 // CSV columns, in order: every field of a row but `attempts`, which only the JSON Lines file carries
 export const COLUMNS = ["tx_id", "epoch", "contract", "llm", "campaign", "created", "created_block", "status", "accepted", "accept_seconds",
   "leader_timeouts", "rotations", "appeals", "recomputations", "votes_agree", "votes_disagree", "votes_dv", "votes_timeout", "queue_seconds"];
@@ -73,7 +81,8 @@ export async function exportAll({ base, dir, now, fetchFn = fetch }) {
   const current = meta.epoch?.number ?? null;
   mkdirSync(dir, { recursive: true });
   const indexPath = join(dir, "index.json");
-  const files = new Map((existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, "utf8")).files : []).map((f) => [f.epoch, f]));
+  const index = existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, "utf8")) : null;
+  const files = new Map((index ? index.files : []).map((f) => [f.epoch, f]));
   const notes = [], columns = new Set();
   for (const { epoch } of [...meta.epochs].sort((a, b) => a.epoch - b.epoch)) {
     const rows = await fetchEpoch(base, epoch, fetchFn);
@@ -89,11 +98,13 @@ export async function exportAll({ base, dir, now, fetchFn = fetch }) {
     else if (epoch === current) notes.push(`epoch ${epoch} (in progress): ${rows.length} rows`);
     else notes.push(`epoch ${epoch} (closed) rewritten: ${changes(fromJsonl(before), rows) ?? "rows reordered"}`);
   }
-  if (!notes.length) return null;
+  const newRules = index !== null && index.rules !== RULES.version;
+  if (!notes.length && !newRules) return null;
   const updated = new Date(now * 1000).toISOString();
-  writeFileSync(indexPath, JSON.stringify({ updated, files: [...files.values()].sort((a, b) => b.epoch - a.epoch) }, null, 2) + "\n");
-  // a new column rewrites every file: said once, before the epochs
+  writeFileSync(indexPath, JSON.stringify({ updated, rules: RULES.version, files: [...files.values()].sort((a, b) => b.epoch - a.epoch) }, null, 2) + "\n");
+  // a new column rewrites every file, a change of rules may rewrite several: each is said once, first
   if (columns.size) notes.unshift(`New column in every file: ${[...columns].join(", ")} (see Data files in the README).`);
+  if (newRules) notes.unshift(`Counting rules of ${RULES.version} (docs/METRICS.md): ${RULES.summary}.`);
   return `Data export ${updated.slice(0, 10)}\n\n${notes.join("\n")}\n`;
 }
 
