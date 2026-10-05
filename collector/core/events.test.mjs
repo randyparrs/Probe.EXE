@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { VOTE, apply, decodeLog, newTx, status, txIdsOf } from "./events.js";
+import { VOTE, apply, decodeLog, newTx, queue, status, txIdsOf } from "./events.js";
 
 const fx = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "fixtures", "two-transactions.json"), "utf8"));
 
@@ -107,4 +107,31 @@ test("an acceptance overturned by an appeal ends as no consensus; a confirmed on
   assert.equal(status(tx), "none");
   roundEnd(tx, 1, 7);
   assert.equal(status(tx), "first");
+});
+
+test("a queued transaction counts as created when it enters consensus; the wait is kept apart", () => {
+  const tx = newTx(ID);
+  apply(tx, ev("CreatedTransaction", { txSlot: "0" }, 100));
+  queue(tx, "0x" + "11".repeat(20));
+  assert.equal(status(tx), "queued");
+  assert.deepEqual([tx.firstBlock, tx.createdBlock, tx.queueSecs], [100, 100, null]);
+  apply(tx, ev("NewTransaction", { recipient: "0x" + "11".repeat(20), activator: "0x" + "22".repeat(20) }, 160));
+  assert.equal(status(tx), "pending");
+  assert.deepEqual([tx.firstBlock, tx.firstTs, tx.createdTs, tx.queueSecs, tx.queued], [160, 160, 100, 60, false]);
+});
+
+test("a queued transaction cancelled before entering consensus ends as no consensus", () => {
+  const tx = newTx(ID);
+  apply(tx, ev("CreatedTransaction", { txSlot: "0" }, 100));
+  queue(tx, "0x" + "11".repeat(20));
+  apply(tx, ev("TransactionCancelled", {}, 300));
+  assert.equal(status(tx), "none");
+  assert.equal(tx.queueSecs, null);
+});
+
+test("sent and entered in the same block: no wait", () => {
+  const tx = newTx(ID);
+  apply(tx, ev("CreatedTransaction", { txSlot: "0" }, 7));
+  apply(tx, ev("NewTransaction", { recipient: "0x" + "11".repeat(20), activator: "0x" + "22".repeat(20) }, 7));
+  assert.deepEqual([status(tx), tx.firstBlock, tx.queueSecs], ["pending", 7, 0]);
 });

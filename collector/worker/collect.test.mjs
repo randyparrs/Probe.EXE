@@ -20,7 +20,7 @@ import { toGen, weightOf } from "../core/staking.js";
 import TABLE from "../core/consensus-events.js";
 import { EVENTS_PAGE, badge, campaignSlot, campaigns, contracts, events, exportPage, failedCampaigns, lastCampaign, latency, operators, overview,
   rpcIncidents, stalledContracts, tally, validView, viewFilter, viewRange } from "./src/api.js";
-import { BACK_SPAN, MAX_SPAN, STALL_SECONDS, collect, eligibleMembers, nextEligibleSet, rpcClient } from "./src/collect.js";
+import { ADD_TRANSACTION, BACK_SPAN, MAX_SPAN, STALL_SECONDS, collect, eligibleMembers, nextEligibleSet, recipientOf as recipientOfInput, rpcClient } from "./src/collect.js";
 import { d1Store } from "./src/store.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -71,7 +71,7 @@ function setup() {
 // Answers the calls of the collector from the fixture. advances: EpochAdvance logs of the staking
 // contract; epochAtStart: what epoch() answers; code: contract address -> source or null (not found).
 const NO_VALIDATORS = { active: [], quarantined: [], banned: [], stake: {}, moniker: {} };
-function fakeFetch({ tip = LAST, logs = LOGS, advances = [], epochAtStart = 167, code = {}, calls = [], validators = NO_VALIDATORS } = {}) {
+function fakeFetch({ tip = LAST, logs = LOGS, advances = [], epochAtStart = 167, code = {}, calls = [], validators = NO_VALIDATORS, sent = {} } = {}) {
   const answer = ({ method, params }) => {
     calls.push({ method, params });
     if (method === "eth_blockNumber") return { result: "0x" + tip.toString(16) };
@@ -103,7 +103,7 @@ function fakeFetch({ tip = LAST, logs = LOGS, advances = [], epochAtStart = 167,
       }
       return { error: { message: "unexpected eth_call " + data.slice(0, 10) } };
     }
-    if (method === "eth_getTransactionByHash") return { result: { from: SENDER.get(params[0]) } };
+    if (method === "eth_getTransactionByHash") return { result: sent[params[0]] ?? { from: SENDER.get(params[0]) } };
     if (method === "gen_getContractCode") {
       const source = code[params[0].address];
       return source == null ? { error: { code: -32001, message: "contract code not found at address" } } : { result: btoa(source) };
@@ -300,6 +300,7 @@ test("the export of an epoch: its transactions in creation order, page by page, 
   assert.deepEqual([a.status, a.campaign, a.llm, a.contract, a.leader_timeouts], ["first", "dvA", "na", recipientOf(A), 0]);
   assert.deepEqual([b.status, b.campaign, b.llm, b.leader_timeouts], ["retry", null, "llm", 1]);
   assert.ok(a.accepted > a.created && a.accept_seconds === a.accepted - a.created && a.created_block > 0);
+  assert.equal(a.queue_seconds, null);   // the fixture has no CreatedTransaction: the wait is unknown
   const votesOf = (id) => EVENTS.filter((ev) => ev.name === "VoteRevealed" && ev.args.txId === id);
   assert.equal(a.votes_agree + a.votes_disagree + a.votes_dv + a.votes_timeout, votesOf(A).filter((ev) => ev.args.voteType > 0).length);
   assert.equal(b.attempts.reduce((n, t) => n + t.votes.length, 0), votesOf(B).length);
@@ -598,4 +599,46 @@ test("a non-JSON answer of the RPC is recorded and the cursor does not move", as
   assert.equal(run.nonJson, 1);
   assert.equal((await store.state(3)).cursor, null);
   assert.equal(get("SELECT non_json FROM runs WHERE ts = 3000").non_json, 1);
+});
+
+// a transaction sent while its contract has a queue: CreatedTransaction first, NewTransaction later
+const TOPIC = Object.fromEntries(Object.entries(TABLE.events).map(([topic, def]) => [def.name, topic]));
+const pad = (hex) => "0x" + hex.replace(/^0x/, "").padStart(64, "0");
+const consensusLog = (name, topics, block, hash, data = "0x") => ({ address: TABLE.address, topics: [TOPIC[name], ...topics.map(pad)], data,
+  blockNumber: "0x" + block.toString(16), logIndex: "0x0", blockTimestamp: "0x" + (1790000000 + block).toString(16), transactionHash: hash });
+
+test("the recipient of a queued transaction comes from the input of the transaction that sent it", () => {
+  const to = "0x" + "77".repeat(20);
+  assert.equal(recipientOfInput(ADD_TRANSACTION + pad(STRANGER).slice(2) + pad(to).slice(2) + pad("5").slice(2)), to);
+  assert.equal(recipientOfInput("0x12345678" + pad(STRANGER).slice(2) + pad(to).slice(2)), null);
+  assert.equal(recipientOfInput(null), null);
+});
+
+test("a queued transaction counts from when it was sent and moves to its epoch when it enters consensus", async () => {
+  const { db, store, get } = setup();
+  const C = "0x" + "c1".repeat(32), TO = "0x" + "77".repeat(20), SENT = "0x" + "e1".repeat(32), IN = "0x" + "e2".repeat(32);
+  const logs = [...LOGS, consensusLog("CreatedTransaction", [C], LAST + 10, SENT, pad("9")),
+    consensusLog("NewTransaction", [C, TO, STRANGER], LAST + 30, IN)];
+  const sent = { [SENT]: { from: STRANGER, input: ADD_TRANSACTION + pad(STRANGER).slice(2) + pad(TO).slice(2) + pad("5").slice(2) } };
+  const options = { logs, sent, advances: [advance(168, LAST + 20)] };
+  const runTo = async (tip, n0) => {
+    for (let n = n0, last = null; !last || last.to < tip; n++) {
+      last = await collect({ rpc: rpcClient("http://rpc", fakeFetch({ ...options, tip })), store, now: 1000 + n, reference: REFERENCE,
+        campaignWallet: WALLET, startBlock: FIRST });
+      assert.equal(last.error, null);
+    }
+  };
+  const row = () => get("SELECT status, epoch, recipient, first_block, sender, json_extract(state, '$.queueSecs') queue FROM tx WHERE tx_id = ?", C);
+  const counts = () => db.prepare("SELECT epoch, sum(tx) tx FROM contract_hour WHERE contract = ? GROUP BY epoch").all(TO).map((r) => ({ ...r }));
+  const streak = () => get("SELECT streak FROM contract_stall WHERE address = ?", TO)?.streak;
+
+  await runTo(LAST + 15, 0);   // sent, not in consensus: queued, in the epoch of the block that sent it
+  assert.deepEqual({ ...row() }, { status: "queued", epoch: 167, recipient: TO, first_block: LAST + 10, sender: STRANGER, queue: null });
+  assert.deepEqual(counts(), [{ epoch: 167, tx: 1 }]);
+  assert.equal(streak(), 1);   // a transaction without votes for the stalled rule
+
+  await runTo(LAST + 40, 100); // entered consensus after the epoch change: created there, out of the old row
+  assert.deepEqual({ ...row() }, { status: "pending", epoch: 168, recipient: TO, first_block: LAST + 30, sender: STRANGER, queue: 20 });
+  assert.deepEqual(counts(), [{ epoch: 167, tx: 0 }, { epoch: 168, tx: 1 }]);
+  assert.equal(streak(), 1);   // counted once
 });

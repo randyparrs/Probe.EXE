@@ -1,6 +1,6 @@
 // D1 store of the collector. Lists travel as one JSON parameter expanded with json_each, so a run
-// costs a fixed number of queries whatever the number of events (the free plan allows 50 queries
-// per invocation and 100 bound parameters per query).
+// costs a fixed number of queries whatever the number of events (D1 limits the queries per
+// invocation and allows 100 bound parameters per query).
 
 const col = (i) => `json_extract(value, '$[${i}]')`;
 const cols = (n) => Array.from({ length: n }, (_, i) => col(i)).join(", ");
@@ -12,7 +12,8 @@ const SAVE_TXS = `INSERT INTO tx (tx_id, recipient, status, first_block, first_t
     epoch, hour, sender, camp, leader_timeouts, rotations, appeals, recomputations, accept_secs, state)
   SELECT ${cols(18)} FROM json_each(?1) WHERE true
   ON CONFLICT (tx_id) DO UPDATE SET recipient = excluded.recipient, status = excluded.status,
-    last_block = excluded.last_block, last_ts = excluded.last_ts, accepted_ts = excluded.accepted_ts,
+    first_block = excluded.first_block, first_ts = excluded.first_ts, last_block = excluded.last_block,
+    last_ts = excluded.last_ts, accepted_ts = excluded.accepted_ts,
     epoch = excluded.epoch, hour = excluded.hour, sender = excluded.sender, camp = excluded.camp,
     leader_timeouts = excluded.leader_timeouts, rotations = excluded.rotations, appeals = excluded.appeals,
     recomputations = excluded.recomputations, accept_secs = excluded.accept_secs, state = excluded.state`;

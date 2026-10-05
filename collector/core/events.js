@@ -13,6 +13,12 @@
 //   undetermined result or a cancellation is "no consensus", also when it had been accepted before
 //   and an appeal overturned it. An appeal that confirms the acceptance keeps its classification.
 // - Anything without a decision yet is "pending".
+//
+// Creation. A transaction emits CreatedTransaction when it is sent and NewTransaction when it enters
+// consensus; both come in the same block unless the contract has a queue. The transaction counts as
+// created when it enters consensus (NewTransaction): its block, time, epoch and hour, and the time to
+// acceptance, start there. The wait in between is kept apart (queueSecs). A transaction that was sent
+// and has not entered consensus is "queued"; one cancelled before entering ends as no consensus.
 
 import TABLE from "./consensus-events.js";
 
@@ -66,6 +72,9 @@ export function txIdsOf(ev) {
 
 export function newTx(txId) {
   return { txId, recipient: null, activator: null, firstBlock: null, firstTs: null, lastBlock: null, lastTs: null,
+           createdBlock: null, createdTs: null,  // CreatedTransaction: when it was sent
+           queued: false,    // sent, not in consensus yet: the recipient was read from the sending transaction
+           queueSecs: null,  // NewTransaction minus CreatedTransaction, when both were seen
            proposals: 0, leaderTimeouts: 0, rotations: 0, appeals: 0, recomputations: 0, validatorsTimeouts: 0,
            acceptedBlock: null, acceptedTs: null, firstAttempt: null,
            decision: null,  // last of "accepted" | "validators_timeout" | "not_accepted" | "undetermined" | "cancelled"
@@ -96,14 +105,26 @@ function roundEnded(tx, result, block, ts) {
   }
 }
 
-// Applies one event (in chain order) to the state of its transaction.
+// A transaction sent and not in consensus yet: its recipient, read from the sending transaction.
+export function queue(tx, recipient) {
+  tx.recipient = recipient; tx.queued = true;
+  return tx;
+}
+
+// Applies one event (in chain order) to the state of its transaction. Until NewTransaction is seen,
+// firstBlock and firstTs are those of the first event seen (CreatedTransaction when it was observed).
 export function apply(tx, ev) {
   if (tx.firstBlock == null) { tx.firstBlock = ev.block; tx.firstTs = ev.ts; }
   tx.lastBlock = ev.block; tx.lastTs = ev.ts;
   const open = tx.acceptedBlock == null;
   switch (ev.name) {
+    case "CreatedTransaction":
+      tx.createdBlock = ev.block; tx.createdTs = ev.ts; break;
     case "NewTransaction":
-      tx.recipient = ev.args.recipient; tx.activator = ev.args.activator; break;
+      tx.recipient = ev.args.recipient; tx.activator = ev.args.activator; tx.queued = false;
+      tx.firstBlock = ev.block; tx.firstTs = ev.ts;
+      if (tx.createdTs != null && ev.ts != null) tx.queueSecs = ev.ts - tx.createdTs;
+      break;
     case "TransactionActivated":
       attempt(tx, ev.args.leader); break;
     case "TransactionLeaderRotated":
@@ -153,12 +174,14 @@ export function apply(tx, ev) {
   return tx;
 }
 
-// "first" | "retry" | "none" | "pending"; "partial" when the transaction started before the
-// observed range (its NewTransaction event was not seen, so its attempts cannot be counted);
-// "unknown" when a round ended but its result was not seen (to be read from the chain).
+// "first" | "retry" | "none" | "pending"; "queued" when it was sent and has not entered consensus;
+// "partial" when the transaction started before the observed range (its NewTransaction event was not
+// seen, so its attempts cannot be counted); "unknown" when a round ended but its result was not seen
+// (to be read from the chain).
 export function status(tx) {
   if (tx.roundEnd) return "unknown";
   if (tx.decision && tx.decision !== "accepted") return "none";
+  if (tx.queued) return "queued";
   if (tx.recipient == null) return "partial";
   if (tx.decision === "accepted") return tx.firstAttempt ? "first" : "retry";
   return "pending";

@@ -2,7 +2,7 @@
 // applies them to the state of their transactions, updates the hourly counters and saves everything
 // with the new cursor in one transaction. It only reads the chain; it never signs.
 
-import { CONSENSUS_ADDRESS, apply, decodeLog, newTx, status, txIdsOf } from "../../core/events.js";
+import { CONSENSUS_ADDRESS, apply, decodeLog, newTx, queue, status, txIdsOf } from "../../core/events.js";
 import { EPOCH_ADVANCE_TOPIC, EPOCH_SELECTOR, SELECTOR, STAKING_ADDRESS, callData, decodeAddresses, decodeBanned, decodeEpochAdvance,
   decodeMoniker, decodeValidatorView, inEffect, toGen, weightOf } from "../../core/staking.js";
 
@@ -55,6 +55,14 @@ export function rpcClient(url, fetchFn = fetch) {
     return calls.map((_, i) => byId.get(i + 1) ?? { error: { message: "missing from the batch response" } });
   }
   return { call, batch, stats };
+}
+
+// Recipient of a GenLayer transaction from the input of the EVM transaction that sent it:
+// addTransaction(address sender, address recipient, uint256, uint256, bytes, uint256). null otherwise.
+export const ADD_TRANSACTION = "0xe71d5196";
+export function recipientOf(input) {
+  const data = String(input ?? "").toLowerCase();
+  return data.startsWith(ADD_TRANSACTION) && data.length >= 10 + 128 ? "0x" + data.slice(10 + 64 + 24, 10 + 128) : null;
 }
 
 // What a transaction adds to the hourly counters of its contract: null while it cannot be counted
@@ -159,14 +167,20 @@ export async function collect({ rpc, store, now, reference = new Map(), campaign
       let events = read.logs.map((l) => decodeLog(l)).filter(Boolean).sort(order);
       let advances = read.advances.map(decodeEpochAdvance).sort(order);
 
-      // aux batch: sender of each new transaction to a reference contract, and code of pending contracts
+      // aux batch: sender of each new transaction to a reference contract; recipient and sender of each
+      // transaction sent and not in consensus within the range (queued: CreatedTransaction does not carry
+      // its recipient, the sending transaction does); code of pending contracts
       const isStart = (ev) => ev.name === "NewTransaction" && reference.has(ev.args.recipient) && ev.evmHash;
-      let starts = events.filter(isStart);
+      const sendersToRead = (evs) => {
+        const entered = new Set(evs.filter((ev) => ev.name === "NewTransaction").map((ev) => ev.args.txId));
+        return evs.filter((ev) => isStart(ev) || (ev.name === "CreatedTransaction" && !entered.has(ev.args.txId) && ev.evmHash));
+      };
+      let starts = sendersToRead(events);
       if (starts.length > senderBatch) {   // too many senders to read at once: stop before the next one
         read.to = Math.max(from, starts[senderBatch].block - 1);
         events = events.filter((ev) => ev.block <= read.to);
         advances = advances.filter((a) => a.block <= read.to);
-        starts = events.filter(isStart);
+        starts = sendersToRead(events);
       }
       // also in the aux batch: the validator sets when they are due, and stake and name of the
       // validators whose data is oldest
@@ -191,10 +205,13 @@ export async function collect({ rpc, store, now, reference = new Map(), campaign
       const newSet = validators.setsRead || st.setsTs != null
         ? nextEligibleSet(st.eligibleSet, eligibleMembers(st.validators, validators), { advance, block: read.to, ts: asOf ?? now, epoch: epochAtEnd })
         : null;
-      const senders = new Map();
+      const senders = new Map(), queuedTo = new Map();
       starts.forEach((ev, i) => {
         if (aux[i].error || !aux[i].result) throw new Error(`eth_getTransactionByHash: ${aux[i].error?.message ?? "no transaction"}`);
-        senders.set(ev.args.txId, String(aux[i].result.from).toLowerCase());
+        const sender = String(aux[i].result.from).toLowerCase();
+        if (ev.name === "NewTransaction") { senders.set(ev.args.txId, sender); return; }
+        const recipient = recipientOf(aux[i].result.input);
+        if (recipient) queuedTo.set(ev.args.txId, { recipient, sender });
       });
       // LLM label of the contracts seen for the first time: one request each, with a time limit. For
       // some contracts the RPC takes over 30 s to answer that it cannot retrieve the code; a contract
@@ -208,7 +225,8 @@ export async function collect({ rpc, store, now, reference = new Map(), campaign
       }));
 
       const ids = [...new Set(events.flatMap(txIdsOf))];
-      const created = [...new Set(events.filter((ev) => ev.name === "NewTransaction").map((ev) => ev.args.recipient))];
+      const created = [...new Set([...events.filter((ev) => ev.name === "NewTransaction").map((ev) => ev.args.recipient),
+        ...[...queuedTo.values()].map((q) => q.recipient)])];
       const [txs, stallRows] = await Promise.all([store.loadTx(ids), store.loadStalls(created, ids)]);
       const due = st.stallsDue.filter((r) => !stallRows.some((s) => s.address === r.address));
       const stalls = stallTracker([...stallRows, ...due]);
@@ -222,11 +240,12 @@ export async function collect({ rpc, store, now, reference = new Map(), campaign
         opHour.set(key, row);
       };
       // the row of a transaction in the counters of its contract: the hour and epoch it was created in
-      const contractRow = (tx) => {
-        const key = `${tx.epoch}|${tx.hour}|${tx.recipient}|${tx.camp ? 1 : 0}`;
+      const rowKey = (tx) => `${tx.epoch}|${tx.hour}|${tx.recipient}|${tx.camp ? 1 : 0}`;
+      const rowAt = (key) => {
         if (!contractHour.has(key)) contractHour.set(key, { tx: 0, first: 0, retry: 0, none: 0, cancelled: 0, last_ts: 0, agree: 0, disagree: 0, dv: 0, timeout: 0 });
         return contractHour.get(key);
       };
+      const contractRow = (tx) => rowAt(rowKey(tx));
       // First leader of a campaign transaction: one more for that validator, and for every
       // validator of the eligible set in effect at that block its share of the total weight.
       const leaderDraw = new Map();
@@ -249,16 +268,21 @@ export async function collect({ rpc, store, now, reference = new Map(), campaign
         for (const id of txIdsOf(ev)) {
           if (!txs.has(id)) txs.set(id, newTx(id));
           const tx = txs.get(id);
-          if (!before.has(id)) before.set(id, classOf(tx));
+          if (!before.has(id)) { const cls = classOf(tx); before.set(id, cls && { ...cls, key: rowKey(tx) }); }
+          const wasQueued = tx.queued;
           apply(tx, ev);
-          if (ev.name === "NewTransaction" && tx.epoch == null) {
+          // created: when it enters consensus; until then, a queued transaction counts from when it was sent
+          const sent = ev.name === "CreatedTransaction" && tx.epoch == null && queuedTo.has(id);
+          if (sent || (ev.name === "NewTransaction" && (tx.epoch == null || wasQueued))) {
+            if (sent) queue(tx, queuedTo.get(id).recipient);
             tx.epoch = epoch;
             tx.hour = Math.floor(ev.ts / 3600);
             const ref = reference.get(tx.recipient);
-            tx.sender = senders.get(id) ?? null;
+            // the sender of a queued transaction is the one that sent it, not the one that brought it in
+            tx.sender = sent ? queuedTo.get(id).sender : wasQueued ? tx.sender : senders.get(id) ?? null;
             tx.camp = ref && campaignWallet && tx.sender === campaignWallet ? ref.name : null;
             newContracts.set(tx.recipient, ref ? ref.name : null);
-            stalls.created(tx.recipient, ev.ts);
+            if (!wasQueued) stalls.created(tx.recipient, ev.ts);
           }
           const src = tx.camp ? (reference.get(tx.recipient).llm ? "camp_llm" : "camp_control") : "net";
           if (ev.name === "VoteRevealed") {
@@ -280,10 +304,19 @@ export async function collect({ rpc, store, now, reference = new Map(), campaign
       }
       while (next < advances.length) epoch = advances[next++].epoch;
 
-      // contract counters: a transaction moves from its class before the run to its class now
+      // contract counters: a transaction moves from its class before the run to its class now, and out
+      // of its old row when it changed hour or epoch (a queued transaction that entered consensus)
       for (const id of ids) {
-        const tx = txs.get(id), was = before.get(id), is = classOf(tx);
+        const tx = txs.get(id), is = classOf(tx);
+        let was = before.get(id);
         if (!is) continue;
+        if (was && was.key !== rowKey(tx)) {
+          const old = rowAt(was.key);
+          old.tx--;
+          if (was.cls !== "pending") old[was.cls]--;
+          if (was.cancelled) old.cancelled--;
+          was = null;
+        }
         const row = contractRow(tx);
         if (!was) row.tx++;
         if (was && was.cls !== "pending") row[was.cls]--;
