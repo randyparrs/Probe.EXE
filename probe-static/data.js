@@ -108,7 +108,7 @@
   }
 
   // ---- tape: the latest network transactions
-  const TAPE_STATUS = { first: 'first', retry: 'retry', none: 'none' };   // anything else: in progress
+  const TAPE_STATUS = { first: 'first', retry: 'retry', none: 'none', queued: 'queued' };   // anything else: in progress
   const shown = new Map();   // hash -> status on screen
   let tapeLoaded = false;
 

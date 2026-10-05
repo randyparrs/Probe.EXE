@@ -8,8 +8,9 @@
   if (!row) return;
   const MAX = 40;
   const EXPLORER = 'https://explorer-bradbury.genlayer.com/tx/';
-  const CLASS = { first: 'tb-g', retry: 'tb-a', none: 'tb-r', pending: 'tb-x' };
-  const LABEL = { first: 'accepted at first attempt', retry: 'accepted after retry', none: 'no consensus', pending: 'in progress' };
+  const CLASS = { first: 'tb-g', retry: 'tb-a', none: 'tb-r', pending: 'tb-x', queued: 'tb-x' };
+  const LABEL = { first: 'accepted at first attempt', retry: 'accepted after retry', none: 'no consensus', pending: 'in progress',
+    queued: 'queued, not in consensus yet' };
   const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const short = h => h.slice(0, 8) + '…' + h.slice(-6);
   const byHash = new Map();
