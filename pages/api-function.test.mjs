@@ -25,6 +25,8 @@ function setup(answer = () => new Response('{"ok":true}', { status: 200, headers
 test("the cache key keeps only the parameters the API reads, in a fixed order", () => {
   assert.equal(cacheKey("https://page/api/events?before=l5&x=1&view=epoch%3A168&utm=a#top"), "https://page/api/events?view=epoch%3A168&before=l5");
   assert.equal(cacheKey("https://page/api/meta?nocache=123"), "https://page/api/meta");
+  // a badge address in any case is one cache entry
+  assert.equal(cacheKey("https://page/api/badge/0xAbCdEf0000000000000000000000000000000001.svg?x=1"), "https://page/api/badge/0xabcdef0000000000000000000000000000000001.svg");
 });
 
 test("a response is asked to the Worker once and then served from the cache", async () => {

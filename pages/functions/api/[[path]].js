@@ -11,6 +11,8 @@ export function cacheKey(requestUrl) {
   const kept = PARAMS.filter((name) => url.searchParams.has(name)).map((name) => [name, url.searchParams.get(name)]);
   url.search = new URLSearchParams(kept).toString();
   url.hash = "";
+  // a badge address in any case is the same badge
+  if (/^\/api\/badge\//i.test(url.pathname)) url.pathname = url.pathname.toLowerCase();
   return url.toString();
 }
 
