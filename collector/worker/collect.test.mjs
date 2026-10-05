@@ -19,7 +19,7 @@ const IDENTITY = [...["moniker", "logoUri", "website", "description", "email", "
 import { toGen, weightOf } from "../core/staking.js";
 import TABLE from "../core/consensus-events.js";
 import { EVENTS_PAGE, badge, campaignSlot, campaigns, contracts, events, exportPage, failedCampaigns, lastCampaign, latency, operators, overview,
-  rpcIncidents, stalledContracts, tally, validView, viewFilter, viewRange } from "./src/api.js";
+  knownEpoch, rpcIncidents, stalledContracts, tally, validBefore, validView, viewFilter, viewRange } from "./src/api.js";
 import { ADD_TRANSACTION, BACK_SPAN, MAX_SPAN, STALL_SECONDS, collect, eligibleMembers, nextEligibleSet, recipientOf as recipientOfInput, rpcClient } from "./src/collect.js";
 import { d1Store } from "./src/store.js";
 
@@ -583,6 +583,8 @@ test("the event log merges its sources newest first, filters by type and pages",
   assert.deepEqual(events({ ...base, type: "campaigns" }).events.map((e) => e.id), ["f7000", "c3000", "m"]);
   assert.deepEqual(events({ ...base, before: "l1" }).events.map((e) => e.id), ["c3000", "r2000", "m"]);
   assert.deepEqual(events({ ...base, before: "nothing" }).events, []);
+  assert.equal(events(base).truncated, false);
+  assert.equal(events({ ...base, truncated: true }).truncated, true);
   // more than a page
   const many = Array.from({ length: EVENTS_PAGE + 5 }, (_, i) => ({ id: i + 1, ts: 2000 + i, type: "eligible", data: "{}" }));
   const first = events({ view: "24h", range, since: 0, logRows: many });
@@ -641,4 +643,19 @@ test("a queued transaction counts from when it was sent and moves to its epoch w
   assert.deepEqual({ ...row() }, { status: "pending", epoch: 168, recipient: TO, first_block: LAST + 30, sender: STRANGER, queue: 20 });
   assert.deepEqual(counts(), [{ epoch: 167, tx: 0 }, { epoch: 168, tx: 1 }]);
   assert.equal(streak(), 1);   // counted once
+});
+
+test("malformed parameters of a view are recognized before any query", () => {
+  assert.deepEqual([null, "l12", "e169", "c1790935253", "f1791000000", "r1790000000", "m"].map(validBefore), [true, true, true, true, true, true, true]);
+  assert.deepEqual(["", "x1", "l", "l1;drop", "M", "c-2", "l" + "9".repeat(13)].map(validBefore), [false, false, false, false, false, false, false]);
+  assert.deepEqual([null, "24h", "epoch:167", "epoch:171"].map((v) => knownEpoch(v, 167, 171)), [true, true, true, true]);
+  assert.deepEqual(["epoch:166", "epoch:172", "epoch:999999"].map((v) => knownEpoch(v, 167, 171)), [false, false, false]);
+  assert.equal(knownEpoch("epoch:167", null, null), false);   // nothing stored yet
+});
+
+test("the network list says when it was cut at its limit", () => {
+  const rows = [{ contract: "0xa", camp: 0, llm: "llm", ref_name: null, tx: 3, first: 3, retry: 0, none: 0, cancelled: 0, agree: 0, disagree: 0, dv: 0, timeout: 0, last_ts: 1 }];
+  const base = { view: "epoch:170", rows, campTx: [], reference: new Map(), refLlm: new Map() };
+  assert.equal(contracts(base).truncated, false);
+  assert.equal(contracts({ ...base, truncated: true }).truncated, true);
 });

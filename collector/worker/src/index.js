@@ -3,7 +3,7 @@
 
 import campaign from "../../campaign/contracts.json";
 import { EVENT_GROUPS, EXPORT_PAGE, OPERATOR_EPOCHS, SERIES_EPOCHS, badge, campaigns, contracts, events, exportPage, failedCampaigns, operators,
-  overview, rpcIncidents, validView, viewFilter, viewRange } from "./api.js";
+  knownEpoch, overview, rpcIncidents, validBefore, validView, viewFilter, viewRange } from "./api.js";
 import { collect, rpcClient } from "./collect.js";
 import { d1Store } from "./store.js";
 
@@ -12,6 +12,8 @@ const EPOCH_MIN_SECONDS = 86400;       // epochMinDuration of the staking contra
 const EVENTS_SINCE = "2026-10-01";     // the page counts from consensus events, and observes the network, since this day
 const SINCE_TS = Date.parse(EVENTS_SINCE + "T00:00:00Z") / 1000;
 const LOG_LIMIT = 500;                 // log entries read for the events of a view
+const RUNS_LIMIT = 2000;               // runs with a non-JSON answer read for the RPC incidents of a view
+const CONTRACTS_LIMIT = 400;           // network contracts of a view, the ones with the most transactions
 const API_LIMIT_PER_MINUTE = 120;      // the limit of the API_LIMIT binding (wrangler.jsonc), for the error message
 
 // reference contract address -> { name, llm }, and name -> llm
@@ -90,9 +92,13 @@ export default {
 
     // a view (an epoch or the last 24 hours): the network and the campaign against its control
     if (["/api/overview", "/api/contracts", "/api/operators", "/api/events"].includes(url.pathname)) {
-      const view = url.searchParams.get("view");
+      // malformed parameters are answered before any query
+      const view = url.searchParams.get("view"), type = url.searchParams.get("type"), before = url.searchParams.get("before");
       if (!validView(view)) return json({ error: "unknown view: use epoch:N or 24h" }, 0, 400);
+      if (url.pathname === "/api/events" && type && !EVENT_GROUPS.includes(type)) return json({ error: "unknown type" }, 0, 400);
+      if (url.pathname === "/api/events" && !validBefore(before)) return json({ error: "unknown before: use the next value of the previous page" }, 0, 400);
       const m = await store.meta(now);
+      if (!knownEpoch(view, m.firstEpoch, m.epoch)) return json({ error: `unknown epoch: the known ones are ${m.firstEpoch} to ${m.epoch}` }, 0, 400);
       const filter = viewFilter(view, now, m);
       if (!filter) return json({ error: "no data yet" }, 0, 503);
       const range = viewRange(filter.view, now, m);
@@ -100,19 +106,17 @@ export default {
       // what happened in the view, newest first: ?type= one of EVENT_GROUPS, ?before= the id of
       // the last event of the previous page
       if (url.pathname === "/api/events") {
-        const type = url.searchParams.get("type");
-        if (type && !EVENT_GROUPS.includes(type)) return json({ error: "unknown type" }, 0, 400);
         // campaigns are numbered within their UTC day, so they are read from the start of the day
         const from = Math.floor(Math.max(range.from, SINCE_TS) / 86400) * 86400;
         const [logRows, bad, times, validators] = await Promise.all([
-          store.logRows(range.from, range.to, LOG_LIMIT), store.badRuns(range.from - 3600, range.to),
+          store.logRows(range.from, range.to, LOG_LIMIT + 1), store.badRuns(range.from - 3600, range.to, RUNS_LIMIT + 1),
           store.campaignTimes(Math.max(0, filter.params[0] - 1), Math.floor(from / 3600), Math.floor(range.to / 3600) + 2), store.validators()]);
         const campaignList = campaigns(times, m.asOf);
         return json(events({
-          view: filter.view, range, logRows, epochs: m.epochs, campaignList, since: SINCE_TS, sinceDate: EVENTS_SINCE,
-          failed: failedCampaigns(campaignList, range.from, range.to, m.asOf, SINCE_TS), incidents: rpcIncidents(bad, now),
+          view: filter.view, range, logRows: logRows.slice(0, LOG_LIMIT), epochs: m.epochs, campaignList, since: SINCE_TS, sinceDate: EVENTS_SINCE,
+          failed: failedCampaigns(campaignList, range.from, range.to, m.asOf, SINCE_TS), incidents: rpcIncidents(bad.slice(0, RUNS_LIMIT), now),
           names: new Map(validators.map((v) => [v.address, v.moniker])), reference: REFERENCE,
-          type, before: url.searchParams.get("before"),
+          type, before, truncated: logRows.length > LOG_LIMIT || bad.length > RUNS_LIMIT,
         }), 300);
       }
 
@@ -130,9 +134,10 @@ export default {
         return json(operators({ view: filter.view, totals, series, validators, draws }), 300);
       }
 
-      const [rows, campTx, byEpoch, stalled] = await Promise.all([store.contractRows(filter, 400), store.campaignTx(filter),
+      const [rows, campTx, byEpoch, stalled] = await Promise.all([store.contractRows(filter, CONTRACTS_LIMIT + 1), store.campaignTx(filter),
         store.campaignByEpoch(Math.max(0, m.epoch - SERIES_EPOCHS + 1)), store.stalled(range.from, range.to)]);
-      return json(contracts({ view: filter.view, rows, campTx, byEpoch, reference: REFERENCE, refLlm: REF_LLM, details: REF_DETAILS, stalled }), 300);
+      return json(contracts({ view: filter.view, rows: rows.slice(0, CONTRACTS_LIMIT), campTx, byEpoch, reference: REFERENCE, refLlm: REF_LLM,
+        details: REF_DETAILS, stalled, truncated: rows.length > CONTRACTS_LIMIT }), 300);
     }
 
     // badge of a contract, to embed anywhere: its first-attempt acceptance in the current epoch

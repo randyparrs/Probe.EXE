@@ -186,16 +186,18 @@ export function d1Store(db) {
 
     // epochs (newest first), collector state and RPC health over the last hour
     async meta(now) {
-      const [meta, epochs, lastOk, rpc] = await db.batch([
+      const [meta, epochs, first, lastOk, rpc] = await db.batch([
         db.prepare("SELECT key, value FROM meta"),
         db.prepare("SELECT epoch, start_block, start_ts FROM epochs ORDER BY epoch DESC LIMIT 30"),
+        db.prepare("SELECT min(epoch) epoch FROM epochs"),
         db.prepare("SELECT ts FROM runs WHERE error IS NULL ORDER BY ts DESC LIMIT 1"),
         db.prepare("SELECT count(*) runs, coalesce(sum(non_json), 0) non_json, coalesce(sum(error IS NOT NULL), 0) failed FROM runs WHERE ts >= ?1").bind(now - 3600),
       ]);
       const m = Object.fromEntries(meta.results.map((r) => [r.key, r.value]));
       const lastRun = lastOk.results[0]?.ts ?? null;
       // while the collector catches up, the data is as recent as the last event it has read
-      return { cursor: num(m.cursor), epoch: num(m.epoch), epochs: epochs.results, lastOk: lastRun, rpc: rpc.results[0],
+      return { cursor: num(m.cursor), epoch: num(m.epoch), epochs: epochs.results, firstEpoch: first.results[0]?.epoch ?? null,
+               lastOk: lastRun, rpc: rpc.results[0],
                synced: m.synced === "1", asOf: m.synced === "1" ? lastRun : num(m.cursor_ts), setsTs: num(m.sets_ts) };
     },
 
@@ -296,9 +298,9 @@ export function d1Store(db) {
     },
 
     // times of the runs that got an answer from the RPC that was not JSON, oldest first
-    async badRuns(from, to) {
-      const { results } = await db.prepare("SELECT ts FROM runs WHERE non_json > 0 AND ts >= ?1 AND ts < ?2 ORDER BY ts LIMIT 2000")
-        .bind(from, to).all();
+    async badRuns(from, to, limit) {
+      const { results } = await db.prepare("SELECT ts FROM runs WHERE non_json > 0 AND ts >= ?1 AND ts < ?2 ORDER BY ts LIMIT ?3")
+        .bind(from, to, limit).all();
       return results.map((r) => r.ts);
     },
 

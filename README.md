@@ -196,16 +196,18 @@ counts (Clopper-Pearson, `probe-static/stats.js`).
 | `GET /api/meta` | Last update per source, current epoch, list of epochs, RPC state. |
 | `GET /api/tape` | The last 40 network transactions with their result. |
 | `GET /api/overview?view=` | First-attempt acceptance of the campaign (with LLM and control) and of the network, votes by type, retry causes, time to acceptance, validator counts, last campaign. |
-| `GET /api/contracts?view=` | Reference contracts, every contract of the network with its LLM label, and stalled contracts. |
+| `GET /api/contracts?view=` | Reference contracts; the contracts of the network with the most transactions in the view, up to 400, with their LLM label (`truncated: true` when there were more); and stalled contracts. |
 | `GET /api/operators?view=` | One row per validator: votes by type on campaign contracts with LLM, on the control and on the whole network, leader rounds and leader timeouts, status, stake, selection weight, first-leader counts against the expected ones, and a series by epoch. |
-| `GET /api/events?view=&type=&before=` | The event log, 50 per page. `type`: `epochs`, `validators`, `contracts`, `campaigns` or `rpc`. `before`: the `next` value of the previous page. |
+| `GET /api/events?view=&type=&before=` | The event log, 50 per page. `type`: `epochs`, `validators`, `contracts`, `campaigns` or `rpc`. `before`: the `next` value of the previous page. `truncated: true` when the view has more events than are read, so the oldest ones are missing. |
 | `GET /api/status` | The last block the collector stored and its last ten runs (range read, requests to the RPC, errors). |
 | `GET /api/badge/{contract}.svg` | An SVG badge with the first-attempt acceptance of a contract in the current epoch, colored like the health labels of the page. |
 | `GET /api/export?epoch=&after=` | Every transaction of an epoch with its attempts and votes, 200 per page. `after`: the `next` value of the previous page. Columns: see Data files. |
 
 `view` is `epoch:168` (one epoch) or `24h` (the last 24 hours); without it the answer is for the
-current epoch. Any other `view` is answered with 400 and a message with the two valid formats; a
-`type` that is not in the list is also answered with 400.
+current epoch. Any other `view`, an epoch before the first one stored or after the current one, a
+`type` that is not in the list and a `before` that is not the id of an event are answered with 400
+and a message: a malformed parameter before any database query, an unknown epoch once the list of
+epochs is read.
 
 ```bash
 curl "https://probe-exe.pages.dev/api/operators?view=epoch:168"

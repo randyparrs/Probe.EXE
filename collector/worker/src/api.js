@@ -8,6 +8,15 @@ export const CAMPAIGN_RUNNING_SECONDS = 600;   // a campaign with an event in th
 // A view in the query is "epoch:N" or "24h"; an absent or empty one is the current epoch.
 export const validView = (view) => !view || view === "24h" || /^epoch:\d{1,9}$/.test(view);
 
+// An epoch view names an epoch from the first stored to the current one.
+export const knownEpoch = (view, first, current) => {
+  const m = /^epoch:(\d+)$/.exec(view ?? "");
+  return !m || (first != null && current != null && Number(m[1]) >= first && Number(m[1]) <= current);
+};
+
+// `before` of the event log: the id of an event, as events() writes it.
+export const validBefore = (before) => before == null || /^(?:[lecfr]\d{1,12}|m)$/.test(before);
+
 // view: "epoch:168" or "24h" (clock hours, so up to one hour more at the edge); default: the current
 // epoch. Returns the filter over a table aliased h with epoch and hour columns, or null with no data.
 export function viewFilter(view, now, meta) {
@@ -169,7 +178,8 @@ export function stalledContracts(rows) {
 // rows: contractRows; campTx: campaignTx; byEpoch: campaignByEpoch; reference: Map of address ->
 // { name, llm }; details: Map of name -> { kind, input, retired: [{ address, reason }] };
 // stalled: rows of store.stalled
-export function contracts({ view, rows, campTx, byEpoch = [], reference, refLlm, details = new Map(), stalled = [] }) {
+// truncated: the network list was cut at its limit (the contracts with the most transactions are kept)
+export function contracts({ view, rows, campTx, byEpoch = [], reference, refLlm, details = new Map(), stalled = [], truncated = false }) {
   const byContract = new Map();
   for (const r of rows) byContract.set(r.contract, [...(byContract.get(r.contract) ?? []), r]);
   const network = [...byContract].map(([contract, list]) => ({
@@ -187,6 +197,7 @@ export function contracts({ view, rows, campTx, byEpoch = [], reference, refLlm,
                by_epoch: byEpoch.filter((r) => r.ref_name === name).map((r) => ({ epoch: r.epoch, ...tally([r]) })) };
     }),
     network,
+    truncated,
     stalled: stalledContracts(stalled),
   };
 }
@@ -310,9 +321,10 @@ const GROUP = { epoch: "epochs", eligible: "validators", quarantined: "validator
 // range: viewRange; logRows: store.logRows; epochs: rows of the epochs table; campaignList:
 // campaigns(); failed: failedCampaigns(); incidents: rpcIncidents(); since: the first second
 // observed; names: Map of validator address -> declared name; reference: Map of contract address ->
-// { name }; type: one of EVENT_GROUPS or null; before: id of the last event of the previous page.
+// { name }; type: one of EVENT_GROUPS or null; before: id of the last event of the previous page;
+// truncated: the log or the RPC runs were cut at their limit, so older events of the view are missing.
 export function events({ view, range, logRows = [], epochs = [], campaignList = [], failed = [], incidents = [], since, sinceDate,
-                         names = new Map(), reference = new Map(), type = null, before = null }) {
+                         names = new Map(), reference = new Map(), type = null, before = null, truncated = false }) {
   const inRange = (ts) => ts != null && ts >= range.from && ts < range.to && ts >= since;
   const starts = new Map(epochs.map((e) => [e.epoch, e.start_ts]));
   const list = [];
@@ -336,5 +348,5 @@ export function events({ view, range, logRows = [], epochs = [], campaignList = 
     .sort((a, b) => b.ts - a.ts || (a.id < b.id ? 1 : -1));
   const at = before == null ? 0 : all.findIndex((e) => e.id === before) + 1;
   const page = before != null && at === 0 ? [] : all.slice(at, at + EVENTS_PAGE);
-  return { view, events: page, next: at + EVENTS_PAGE < all.length && page.length ? page.at(-1).id : null };
+  return { view, events: page, next: at + EVENTS_PAGE < all.length && page.length ? page.at(-1).id : null, truncated };
 }
