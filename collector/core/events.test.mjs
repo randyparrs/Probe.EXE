@@ -129,9 +129,8 @@ test("a queued transaction cancelled before entering consensus ends as no consen
   assert.equal(tx.queueSecs, null);
 });
 
-test("sent and entered in the same block: no wait", () => {
+test("a transaction that enters consensus at once emits no CreatedTransaction: no wait", () => {
   const tx = newTx(ID);
-  apply(tx, ev("CreatedTransaction", { txSlot: "0" }, 7));
   apply(tx, ev("NewTransaction", { recipient: "0x" + "11".repeat(20), activator: "0x" + "22".repeat(20) }, 7));
-  assert.deepEqual([status(tx), tx.firstBlock, tx.queueSecs], ["pending", 7, 0]);
+  assert.deepEqual([status(tx), tx.firstBlock, tx.createdBlock, tx.queueSecs], ["pending", 7, null, 0]);
 });

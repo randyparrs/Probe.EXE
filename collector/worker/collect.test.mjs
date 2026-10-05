@@ -300,7 +300,7 @@ test("the export of an epoch: its transactions in creation order, page by page, 
   assert.deepEqual([a.status, a.campaign, a.llm, a.contract, a.leader_timeouts], ["first", "dvA", "na", recipientOf(A), 0]);
   assert.deepEqual([b.status, b.campaign, b.llm, b.leader_timeouts], ["retry", null, "llm", 1]);
   assert.ok(a.accepted > a.created && a.accept_seconds === a.accepted - a.created && a.created_block > 0);
-  assert.equal(a.queue_seconds, null);   // the fixture has no CreatedTransaction: the wait is unknown
+  assert.equal(a.queue_seconds, 0);      // no CreatedTransaction: it entered consensus at once
   const votesOf = (id) => EVENTS.filter((ev) => ev.name === "VoteRevealed" && ev.args.txId === id);
   assert.equal(a.votes_agree + a.votes_disagree + a.votes_dv + a.votes_timeout, votesOf(A).filter((ev) => ev.args.voteType > 0).length);
   assert.equal(b.attempts.reduce((n, t) => n + t.votes.length, 0), votesOf(B).length);

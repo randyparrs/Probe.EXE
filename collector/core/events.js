@@ -14,11 +14,12 @@
 //   and an appeal overturned it. An appeal that confirms the acceptance keeps its classification.
 // - Anything without a decision yet is "pending".
 //
-// Creation. A transaction emits CreatedTransaction when it is sent and NewTransaction when it enters
-// consensus; both come in the same block unless the contract has a queue. The transaction counts as
-// created when it enters consensus (NewTransaction): its block, time, epoch and hour, and the time to
-// acceptance, start there. The wait in between is kept apart (queueSecs). A transaction that was sent
-// and has not entered consensus is "queued"; one cancelled before entering ends as no consensus.
+// Creation. A transaction emits NewTransaction when it enters consensus. One that has to wait behind
+// earlier transactions of its contract also emits CreatedTransaction when it is sent; one that enters
+// at once does not. The transaction counts as created when it enters consensus: its block, time,
+// epoch and hour, and the time to acceptance, start there. The wait is kept apart (queueSecs, 0 when
+// it entered at once). A transaction that was sent and has not entered consensus is "queued"; one
+// cancelled before entering ends as no consensus.
 
 import TABLE from "./consensus-events.js";
 
@@ -74,7 +75,7 @@ export function newTx(txId) {
   return { txId, recipient: null, activator: null, firstBlock: null, firstTs: null, lastBlock: null, lastTs: null,
            createdBlock: null, createdTs: null,  // CreatedTransaction: when it was sent
            queued: false,    // sent, not in consensus yet: the recipient was read from the sending transaction
-           queueSecs: null,  // NewTransaction minus CreatedTransaction, when both were seen
+           queueSecs: null,  // NewTransaction minus CreatedTransaction; 0 without CreatedTransaction
            proposals: 0, leaderTimeouts: 0, rotations: 0, appeals: 0, recomputations: 0, validatorsTimeouts: 0,
            acceptedBlock: null, acceptedTs: null, firstAttempt: null,
            decision: null,  // last of "accepted" | "validators_timeout" | "not_accepted" | "undetermined" | "cancelled"
@@ -123,7 +124,7 @@ export function apply(tx, ev) {
     case "NewTransaction":
       tx.recipient = ev.args.recipient; tx.activator = ev.args.activator; tx.queued = false;
       tx.firstBlock = ev.block; tx.firstTs = ev.ts;
-      if (tx.createdTs != null && ev.ts != null) tx.queueSecs = ev.ts - tx.createdTs;
+      tx.queueSecs = tx.createdTs != null && ev.ts != null ? ev.ts - tx.createdTs : 0;
       break;
     case "TransactionActivated":
       attempt(tx, ev.args.leader); break;
