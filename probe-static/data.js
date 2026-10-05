@@ -697,7 +697,19 @@
     if (b) document.dispatchEvent(new CustomEvent('probe:viewchange', { detail: { view: b.dataset.campView } }));
   });
 
+  // An epoch that started before the page began observing: its counts cover only the part observed.
+  function partialNote() {
+    const m = /^epoch:(\d+)$/.exec(view || ''), e = m && meta ? meta.epochs.find(x => x.epoch === +m[1]) : null;
+    const since = meta ? Date.parse(meta.events_since + 'T00:00:00Z') / 1000 : NaN;
+    const show = !!(e && e.since != null && e.since < since);
+    $$('[data-partial-note]').forEach(node => {
+      node.hidden = !show;
+      node.textContent = show ? `Epoch ${e.epoch} started on ${full(e.since)}, before this page began observing (${meta.events_since} 00:00 UTC). Its counts cover only the part observed.` : '';
+    });
+  }
+
   function loadView() {
+    partialNote();
     const selected = view, q = view ? '?view=' + encodeURIComponent(view) : '';
     const now = Math.floor(Date.now() / 1000);
     const overview = get('api/overview' + q);

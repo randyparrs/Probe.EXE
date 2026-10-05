@@ -55,9 +55,10 @@
     }
     if (state === 'empty') {
       if (info.text) return info.text;
-      if (info.oldEpoch) return 'No data recorded for this epoch.';
       const own = EMPTY.find(([re]) => re.test(b.title));
-      return own ? own[1] : EMPTY_BY_SOURCE[b.sources[0]];
+      if (own) return own[1];
+      if (info.oldEpoch) return 'No data recorded for this epoch.';
+      return EMPTY_BY_SOURCE[b.sources[0]];
     }
     return '';
   }
