@@ -42,6 +42,9 @@ test("what changed in an epoch is said in one sentence", () => {
   assert.equal(changes(before, [tx(1, 167, "first"), tx(2, 167, "first"), tx(3, 167, "none"), tx(4, 167, "first")]),
     "1 new transactions, 1 went from pending to first, 1 went from pending to none");
   assert.equal(changes(before, [tx(1, 167, "first", { votes_agree: 6 }), tx(2, 167, "pending")]), "1 transactions removed, 1 with later events and the same status");
+  const regrouped = [{ leader: "0xl", leader_timeout: false, result: "no_majority", votes: [] }, ...tx(1, 167, "first").attempts];
+  assert.equal(changes(before, [tx(1, 167, "first", { attempts: regrouped }), tx(2, 167, "pending"), tx(3, 167, "pending")]),
+    "1 with their attempts regrouped");
 });
 
 test("the export writes one pair of files per epoch, rewrites what changed and says why", async () => {

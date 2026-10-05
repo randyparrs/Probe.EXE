@@ -41,12 +41,13 @@ export function changes(before, after) {
   const fresh = new Set(newFields(before, after));
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(Object.fromEntries(Object.entries(b).filter(([k]) => !fresh.has(k))));
   const moves = new Map();
-  let created = 0, other = 0;
+  let created = 0, regrouped = 0, other = 0;
   for (const r of after) {
     const was = old.get(r.tx_id);
     if (!was || same(was, r)) continue;
     if (was.status !== r.status) moves.set(`${was.status} to ${r.status}`, (moves.get(`${was.status} to ${r.status}`) ?? 0) + 1);
     else if (was.created !== r.created) created++;
+    else if (same({ ...was, attempts: null }, { ...r, attempts: null })) regrouped++;   // the same votes, in other attempts
     else other++;
   }
   const parts = [];
@@ -54,6 +55,7 @@ export function changes(before, after) {
   if (removed) parts.push(`${removed} transactions removed`);
   for (const [move, n] of moves) parts.push(`${n} went from ${move}`);
   if (created) parts.push(`${created} with a different creation time`);
+  if (regrouped) parts.push(`${regrouped} with their attempts regrouped`);
   if (other) parts.push(`${other} with later events and the same status`);
   return parts.length ? parts.join(", ") : null;
 }
