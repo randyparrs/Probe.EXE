@@ -695,7 +695,8 @@
       // the first window of the epoch: an epoch with no campaign answers that one first
       const e = meta.epoch.number, w = windowsOf(e, meta.epoch.since, meta.epoch.since + (e % 8) * 10800)[0];
       const hm = ts => clock(new Date(ts * 1000)).replace(' UTC', '');
-      const m = lastCampaignEpoch();
+      // the epoch of the last campaign as the API counts it; an epoch with none is never the target
+      const m = last && last.status !== 'failed' && last.epoch != null && last.epoch < e ? last.epoch : lastCampaignEpoch();
       const day = new Date(w.start * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
       const text = meta.now < w.end ? `Next campaign: ${day}, ${hm(w.start)} to ${hm(w.end)} UTC. Campaign data for this epoch appears once it runs.`
         : `The campaign of this epoch is late: its window was ${day}, ${hm(w.start)} to ${hm(w.end)} UTC. It runs at the next dispatch, within 3 hours.`;
