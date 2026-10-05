@@ -673,7 +673,7 @@
   function campaignText(o, selected) {
     if (campaignTx(o)) return null;
     if (isCurrent(selected)) return WAITING;
-    const m = /^epoch:(d+)$/.exec(selected || ''), e = m && meta ? meta.epochs.find(x => x.epoch === +m[1]) : null;
+    const m = /^epoch:(\d+)$/.exec(selected || ''), e = m && meta ? meta.epochs.find(x => x.epoch === +m[1]) : null;
     return e && e.since != null && e.since < SCHEDULE_SINCE ? GAP : null;
   }
   // the newest epoch before the current one that has campaign transactions, or null
