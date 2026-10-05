@@ -28,6 +28,9 @@ const RPC = testnetBradbury.rpcUrls.default.http[0];
 const KEY = process.env.CAMPAIGN_PRIVATE_KEY;
 if (!KEY) throw new Error("CAMPAIGN_PRIVATE_KEY is not set");
 const TX_PER_CONTRACT = Number(process.env.TX_PER_CONTRACT ?? 80);
+if (!Number.isInteger(TX_PER_CONTRACT) || TX_PER_CONTRACT < 1 || TX_PER_CONTRACT > 200) {
+  throw new Error(`TX_PER_CONTRACT must be a whole number from 1 to 200, not ${process.env.TX_PER_CONTRACT}`);
+}
 const POLL_MS = Number(process.env.POLL_MS ?? 1000);
 const RUN_ID = process.env.RUN_ID ?? new Date().toISOString().replace(/[:.]/g, "-");
 const OUT = process.env.OUT_DIR ?? join("out", RUN_ID);
