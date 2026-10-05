@@ -363,6 +363,10 @@ windows of Phase 1 (V1 included). Phase 0 is not rewritten: its difference is re
 - In the retry causes, that case appears as `LEADER_TIMEOUT (no PROPOSING seen)`.
 - Code: `attempts_v5()` in `scripts/campaign_report.py` (the `attempts()` of versions 2.1 and 4 does
   not change).
+- **Known limit.** Polling sees an appeal through the `APPEAL_*` states and the size of the committee
+  that decides (5, then 11, then 17). Two appeals with a committee of the same size cannot be told
+  apart, so at most one appeal per committee size is visible. Consensus events (version 6) count
+  every `AppealStarted`.
 
 ## Version 6 (2026-09-30): counting from consensus events
 
