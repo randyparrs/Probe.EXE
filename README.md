@@ -21,7 +21,8 @@ How the parts fit together and how each number gets to the page:
 
 Measured on Bradbury between September 28 and 30, 2026, over six windows of 50 transactions per
 contract ([docs/VALIDATION-REPORT.md](docs/VALIDATION-REPORT.md),
-`results/bradbury/network-report-v1.txt` to `v6.txt`).
+`results/bradbury/network-report-v1.txt` to `v6.txt`). Every figure of this section is produced
+from the published data by `python scripts/findings.py`.
 
 - **With an LLM call the network diverges; without one it does not.** The control contract, which
   makes no LLM call, was accepted at the first attempt in 300 of 300 transactions, with no TIMEOUT
@@ -35,8 +36,9 @@ contract ([docs/VALIDATION-REPORT.md](docs/VALIDATION-REPORT.md),
 - **Five operators voted TIMEOUT on every vote with an LLM call and on none without.** BlackNodes
   198 of 198, Blockscope 236 of 236, Brightlystake 215 of 215, StakingCabin 234 of 234, and Neturion
   Global 154 of 154 from the second window on. On the control they had no TIMEOUT or divergence in
-  295 votes. The rest of the operators: 187 TIMEOUT in 4,655 votes with LLM (4.0%). This is data
-  about what the chain recorded, not a judgment of how a node is run.
+  295 votes. The rest of the operators: 33 TIMEOUT in 4,470 votes with LLM (0.7%); the 31 votes of
+  Neturion Global in the first window, with no TIMEOUT, are counted with Neturion, not with the rest.
+  This is data about what the chain recorded, not a judgment of how a node is run.
 - **The prediction model did not pass its pre-registered criterion, by one pair.** Its predictions
   fell inside the measured 95% interval in 11 of 15 contract-window pairs; 12 were required. Its
   mean absolute error was 9.5 points against 10.0 for the naive prediction. The page shows no

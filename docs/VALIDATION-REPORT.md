@@ -158,7 +158,8 @@ rate of a contract moves outside its interval between windows.
   | StakingCabin | 0x0c526A6af46A038E31dA21C123756Ab2D75f06Bc | 234/234 | 65/65 | 0/58 |
   | Neturion Global | 0xfd811B16001077243e07173ec72a4735FF04C3AA | V1 0/31; V2-V6 154/154 | V1 0/8; V2-V6 30/30 | 0/56 |
 
-  The rest of the operators: 187 TIMEOUT in 4,655 votes with LLM (4.0%). The control without LLM: 0
+  The rest of the operators: 33 TIMEOUT in 4,470 votes with LLM (0.7%). Corrected on 2026-10-05: the
+  earlier figure counted one of the five operators among the rest. The control without LLM: 0
   TIMEOUT or DV in 1,500 votes. Detail per window in `results/bradbury/network-report-v*.txt`.
 - **Company accepted with execution error, by final leader** (V3 to V6; 22 tx in total) [measured]:
 
