@@ -396,8 +396,17 @@ transactions that `getTransaction` no longer returns.
 - **The final decision rules**: a transaction whose last decision is a validators timeout, an
   undetermined result or a cancellation is **no consensus**, also when it had been accepted before
   and an appeal overturned it. An appeal that confirms the acceptance keeps its classification.
+- **Finalized decides (2026-10-05).** A decision other than an acceptance is final only when the
+  transaction is finalized: until then a leader rotation or an appeal can still follow, and the
+  transaction is **in progress**. A cancellation is final at once. A transaction finalized with no
+  real acceptance is **no consensus**.
+- **Votes and attempts (2026-10-05).** A revealed vote belongs to the attempt whose committee (the
+  validators of its proposal) contains the voter, the latest one when several do, and to the current
+  attempt when none does. Before, every vote went to the current attempt, so a vote revealed after a
+  rotation could be listed under the next attempt.
 - No decision yet: **in progress**. A transaction whose start was not observed is partial and is not
-  classified. A round end whose result was not seen is read from the chain.
+  classified. A round end whose result was not seen (the vote that carries it was not observed) is
+  **unknown** and counts as in progress; it is not read from the chain.
 
 **Retry causes** that events can count: leader timeout, no majority (the leader was rotated),
 appeal, and recomputation.

@@ -144,12 +144,13 @@ Two things in `results/` are in Spanish and are published as they were recorded:
 
 The [`data` branch](https://github.com/randyparrs/Probe.EXE/tree/data) holds every transaction the
 page has observed, one pair of files per epoch: `epoch-N.csv` and `epoch-N.jsonl`, listed in
-`index.json` (`{ updated, files: [{ epoch, csv, jsonl, rows }] }`). A workflow writes them once a day
-(`.github/workflows/export.yml`, `collector/export/export.mjs`) from the public API of the page:
-`GET /api/export?epoch=N` returns 200 transactions per page and a `next` value to pass as `&after=`
-for the following page. The epoch in progress is rewritten every day. A closed epoch is rewritten
-only when its rows changed (a transaction that ended after the epoch closed), and the commit message
-says what changed.
+`index.json` (`{ updated, rules, files: [{ epoch, csv, jsonl, rows }] }`; `rules` is the date of the
+counting rules the rows follow, in [docs/METRICS.md](docs/METRICS.md)). A workflow writes them once
+a day (`.github/workflows/export.yml`, `collector/export/export.mjs`) from the public API of the
+page: `GET /api/export?epoch=N` returns 200 transactions per page and a `next` value to pass as
+`&after=` for the following page. The epoch in progress is rewritten every day. A closed epoch is
+rewritten only when its rows changed (a transaction that ended after the epoch closed, or a change
+of the counting rules), and the commit message says what changed.
 
 One row per transaction, in creation order. Times are Unix seconds (UTC).
 
@@ -162,7 +163,7 @@ One row per transaction, in creation order. Times are Unix seconds (UTC).
 | `campaign` | Name of the reference contract when the transaction was sent by the campaign wallet to one of its copies. Empty for every other transaction. |
 | `created` | Time of the block where the transaction entered consensus (`NewTransaction`). For a queued transaction, the block that sent it (`CreatedTransaction`). |
 | `created_block` | Number of that block. |
-| `status` | `first`: accepted at the first attempt. `retry`: accepted after a retry. `none`: ended without consensus (validators timeout, undetermined, cancelled, also before entering consensus, or an acceptance overturned by an appeal). `pending`: in consensus, no decision yet. `queued`: sent and not in consensus yet, behind earlier transactions of the same contract. `unknown`: a round ended and its result was not observed. |
+| `status` | `first`: accepted at the first attempt. `retry`: accepted after a retry. `none`: ended without consensus (validators timeout, no majority or undetermined, once finalized; cancelled, also before entering consensus; an acceptance overturned by an appeal; or finalized with no acceptance). `pending`: in consensus, no decision yet, or a decision that a rotation or an appeal can still change before the transaction is finalized. `queued`: sent and not in consensus yet, behind earlier transactions of the same contract. `unknown`: a round ended and the vote that carries its result was not observed. |
 | `accepted` | Time of the first real acceptance. Empty when there was none. |
 | `accept_seconds` | `accepted` minus `created`. It does not include the wait in the queue. |
 | `leader_timeouts` | Leader timeouts before the first acceptance. |
