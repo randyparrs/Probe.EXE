@@ -1,11 +1,11 @@
 name: Daily campaign
 
-# One measurement campaign per day on GenLayer Bradbury.
+# One measurement campaign per epoch (about a day) on GenLayer Bradbury.
 #
 # Trigger: an external cron (cron-job.org) calls the workflow_dispatch API every 3 hours. GitHub's
-# own `schedule` is not used: it can run late or skip runs. Each dispatch checks whether it is
-# today's slot (collector/campaign/slot.mjs) and exits in seconds when it is not, so the campaign
-# visits 8 different hours over 8 days.
+# own `schedule` is not used: it can run late or skip runs. Each dispatch checks whether the current
+# epoch is due a campaign (collector/campaign/slot.mjs, rule in collector/core/schedule.js) and exits
+# in seconds when it is not, so the campaign visits 8 different hours of the epoch over 8 epochs.
 #
 # The campaign wallet key is a GitHub Actions secret of a testnet-only wallet. Logs show only
 # public data. The page counts the campaign from the consensus events of its transactions, read by
@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: "Run even outside today's slot"
+        description: "Run even when the epoch is not due a campaign"
         type: boolean
         default: false
       tx_per_contract:
@@ -51,7 +51,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Today's slot
+      - name: Campaign due
         id: slot
         run: node collector/campaign/slot.mjs
         env:

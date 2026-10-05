@@ -11,7 +11,7 @@
   "scripts": {
     "campaign": "node collector/campaign/campaign.mjs",
     "slot": "node collector/campaign/slot.mjs",
-    "test": "node --test collector/core/events.test.mjs collector/core/staking.test.mjs collector/core/page-stats.test.mjs collector/worker/collect.test.mjs collector/worker/index.test.mjs collector/export/export.test.mjs pages/api-function.test.mjs",
+    "test": "node --test collector/core/events.test.mjs collector/core/schedule.test.mjs collector/core/staking.test.mjs collector/core/page-stats.test.mjs collector/worker/collect.test.mjs collector/worker/index.test.mjs collector/export/export.test.mjs pages/api-function.test.mjs",
     "export": "node collector/export/export.mjs"
   },
   "dependencies": {
