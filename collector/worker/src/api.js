@@ -221,7 +221,8 @@ const RESULT_NAME = ["idle", "agree", "disagree", "timeout", "dv", "no_majority"
 export function exportPage({ epoch, rows }) {
   const page = rows.slice(0, EXPORT_PAGE);
   const out = page.map((r) => {
-    const attempts = (JSON.parse(r.state).attempts ?? []).map((a) => ({
+    const state = JSON.parse(r.state);
+    const attempts = (state.attempts ?? []).map((a) => ({
       leader: a.leader ?? null, leader_timeout: !!a.timedOut, result: a.result == null ? null : RESULT_NAME[a.result] ?? String(a.result),
       votes: a.votes.map(([validator, type]) => [validator, VOTE_NAME[type] ?? String(type)]),
     }));
@@ -231,7 +232,8 @@ export function exportPage({ epoch, rows }) {
       tx_id: r.tx_id, epoch: r.epoch, contract: r.recipient, llm: r.llm ?? null, campaign: r.camp ?? null,
       created: r.first_ts, created_block: r.first_block, status: r.status, accepted: r.accepted_ts ?? null, accept_seconds: r.accept_secs ?? null,
       leader_timeouts: r.leader_timeouts, rotations: r.rotations, appeals: r.appeals, recomputations: r.recomputations,
-      votes_agree: votes.agree, votes_disagree: votes.disagree, votes_dv: votes.dv, votes_timeout: votes.timeout, attempts,
+      votes_agree: votes.agree, votes_disagree: votes.disagree, votes_dv: votes.dv, votes_timeout: votes.timeout,
+      queue_seconds: state.queueSecs ?? null, attempts,
     };
   });
   const last = page.at(-1);

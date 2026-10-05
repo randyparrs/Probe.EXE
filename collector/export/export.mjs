@@ -14,30 +14,38 @@ import { fileURLToPath } from "node:url";
 
 // CSV columns, in order: every field of a row but `attempts`, which only the JSON Lines file carries
 export const COLUMNS = ["tx_id", "epoch", "contract", "llm", "campaign", "created", "created_block", "status", "accepted", "accept_seconds",
-  "leader_timeouts", "rotations", "appeals", "recomputations", "votes_agree", "votes_disagree", "votes_dv", "votes_timeout"];
+  "leader_timeouts", "rotations", "appeals", "recomputations", "votes_agree", "votes_disagree", "votes_dv", "votes_timeout", "queue_seconds"];
 
 const cell = (v) => (v == null ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
 export const toCsv = (rows) => [COLUMNS.join(","), ...rows.map((r) => COLUMNS.map((c) => cell(r[c])).join(","))].join("\n") + "\n";
 export const toJsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : "");
 export const fromJsonl = (text) => text.split("\n").filter(Boolean).map((line) => JSON.parse(line));
 
+// Fields of the rows that the previous version of a file did not have (a new column).
+export const newFields = (before, after) => (before.length && after.length ? Object.keys(after[0]).filter((k) => !(k in before[0])) : []);
+
 // What changed between two versions of the rows of an epoch, as one sentence; null when nothing did.
+// A new column is reported once by exportAll, not as a change of every row.
 export function changes(before, after) {
   const old = new Map(before.map((r) => [r.tx_id, r]));
   const added = after.filter((r) => !old.has(r.tx_id)).length;
   const removed = before.length - (after.length - added);
+  const fresh = new Set(newFields(before, after));
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(Object.fromEntries(Object.entries(b).filter(([k]) => !fresh.has(k))));
   const moves = new Map();
-  let other = 0;
+  let created = 0, other = 0;
   for (const r of after) {
     const was = old.get(r.tx_id);
-    if (!was || JSON.stringify(was) === JSON.stringify(r)) continue;
+    if (!was || same(was, r)) continue;
     if (was.status !== r.status) moves.set(`${was.status} to ${r.status}`, (moves.get(`${was.status} to ${r.status}`) ?? 0) + 1);
+    else if (was.created !== r.created) created++;
     else other++;
   }
   const parts = [];
   if (added) parts.push(`${added} new transactions`);
   if (removed) parts.push(`${removed} transactions removed`);
   for (const [move, n] of moves) parts.push(`${n} went from ${move}`);
+  if (created) parts.push(`${created} with a different creation time`);
   if (other) parts.push(`${other} with later events and the same status`);
   return parts.length ? parts.join(", ") : null;
 }
@@ -66,7 +74,7 @@ export async function exportAll({ base, dir, now, fetchFn = fetch }) {
   mkdirSync(dir, { recursive: true });
   const indexPath = join(dir, "index.json");
   const files = new Map((existsSync(indexPath) ? JSON.parse(readFileSync(indexPath, "utf8")).files : []).map((f) => [f.epoch, f]));
-  const notes = [];
+  const notes = [], columns = new Set();
   for (const { epoch } of [...meta.epochs].sort((a, b) => a.epoch - b.epoch)) {
     const rows = await fetchEpoch(base, epoch, fetchFn);
     const name = { csv: `epoch-${epoch}.csv`, jsonl: `epoch-${epoch}.jsonl` };
@@ -76,6 +84,7 @@ export async function exportAll({ base, dir, now, fetchFn = fetch }) {
     writeFileSync(path, jsonl);
     writeFileSync(join(dir, name.csv), toCsv(rows));
     files.set(epoch, { epoch, ...name, rows: rows.length });
+    if (before !== null) newFields(fromJsonl(before), rows).forEach((k) => columns.add(k));
     if (before === null) notes.push(`epoch ${epoch}: new, ${rows.length} rows`);
     else if (epoch === current) notes.push(`epoch ${epoch} (in progress): ${rows.length} rows`);
     else notes.push(`epoch ${epoch} (closed) rewritten: ${changes(fromJsonl(before), rows) ?? "rows reordered"}`);
@@ -83,6 +92,8 @@ export async function exportAll({ base, dir, now, fetchFn = fetch }) {
   if (!notes.length) return null;
   const updated = new Date(now * 1000).toISOString();
   writeFileSync(indexPath, JSON.stringify({ updated, files: [...files.values()].sort((a, b) => b.epoch - a.epoch) }, null, 2) + "\n");
+  // a new column rewrites every file: said once, before the epochs
+  if (columns.size) notes.unshift(`New column in every file: ${[...columns].join(", ")} (see Data files in the README).`);
   return `Data export ${updated.slice(0, 10)}\n\n${notes.join("\n")}\n`;
 }
 

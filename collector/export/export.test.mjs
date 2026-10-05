@@ -71,3 +71,18 @@ test("the export writes one pair of files per epoch, rewrites what changed and s
   await run(1791072000);
   assert.deepEqual(JSON.parse(readFileSync(join(dir, "index.json"), "utf8")).files.map((f) => [f.epoch, f.rows]), [[168, 3], [167, 3]]);
 });
+
+test("a new column rewrites every file and is said once; a corrected creation time is said apart", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "probe-export-"));
+  const closed = [tx(1, 167, "first"), tx(2, 167, "none")], open = [tx(3, 168, "pending")];
+  const epochs = new Map([[167, closed], [168, open]]);
+  const run = (now) => exportAll({ base: "http://page", dir, now, fetchFn: fakePage(epochs, 168) });
+  await run(1790899200);
+
+  const withQueue = (r, queue_seconds = 0) => { const { attempts, ...rest } = r; return { ...rest, queue_seconds, attempts }; };
+  epochs.set(167, [withQueue(closed[0]), withQueue({ ...closed[1], created: 1500, created_block: 99 }, 840)]);
+  epochs.set(168, [withQueue(open[0])]);
+  assert.equal(await run(1790985600), "Data export 2026-10-03\n\nNew column in every file: queue_seconds (see Data files in the README).\n"
+    + "epoch 167 (closed) rewritten: 1 with a different creation time\nepoch 168 (in progress): 1 rows\n");
+  assert.equal(readFileSync(join(dir, "epoch-167.csv"), "utf8").split("\n")[0].split(",").at(-1), "queue_seconds");
+});
