@@ -417,6 +417,21 @@ implement them.
 - **Views.** A view is one epoch or the last 24 hours. A transaction belongs to the epoch and the
   clock hour in which it was created; "last 24 hours" counts whole clock hours, so it can include up
   to one hour more.
+- **Created.** A transaction emits `CreatedTransaction` when it is sent and
+  `NewTransaction` when it enters consensus. Both come in the same block unless the contract has a
+  queue of earlier transactions. The transaction counts as created when it enters consensus: its
+  block, time, epoch and hour, and the time to acceptance, start at `NewTransaction`. The wait in
+  between is kept apart (`queue_seconds` in the data files). Before this rule the block and time
+  of creation were those of `CreatedTransaction` while the epoch and hour were those of
+  `NewTransaction`; 2 of 3,459 transactions waited across an epoch change and were missing from
+  the data files. The stored transactions were corrected.
+- **Queued.** A transaction that was sent and has not entered consensus. `CreatedTransaction` does
+  not carry the recipient, so it is read once from the transaction that sent it. A queued
+  transaction counts as in progress in the epoch and hour of the block that sent it, and moves to
+  those where it enters consensus. One cancelled before entering ends as no consensus. Measured
+  case: after a transaction of a copy of company_naming stayed undetermined for 24 hours
+  (2026-09-29 to 2026-09-30), the next transactions sent to that copy emitted only
+  `CreatedTransaction`, and one was cancelled when the first one closed.
 - **Campaign transaction.** Sent by the campaign wallet to a copy of a reference contract. Any other
   transaction to those contracts counts only as network.
 - **Health labels.** HEALTHY: first-attempt acceptance of 90% or more. DEGRADED: 70 to 90%. FAILING:
@@ -435,7 +450,8 @@ implement them.
   seen with up to 5 minutes of delay.
 - **Stalled contract.** Five transactions in a row without a vote on any transaction of the
   contract, the fifth one over 60 minutes old (`STALL_STREAK`, `STALL_SECONDS` in
-  `collector/worker/src/collect.js`). A transaction that stays idle counts as one without a vote.
+  `collector/worker/src/collect.js`). A transaction that stays idle or queued counts as one
+  without a vote.
   The contract recovers at the next vote.
 - **Campaigns.** Running: one of its transactions had an event in the last 10 minutes. Two
   campaigns: campaign transactions created more than 30 minutes apart. Failed: the 3-hour slot of

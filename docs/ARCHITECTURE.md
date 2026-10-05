@@ -176,14 +176,16 @@ the commit message says what changed. The columns are in the [README](../README.
 
 ## Limits that shaped the design
 
-The collector and the page run on Cloudflare's free plan.
-
-- A run of the collector has about 10 ms of CPU and 50 requests to the RPC and the database. This
-  is why the aggregates are built incrementally by the collector and not computed when asked.
+- A run of the collector makes a fixed number of requests to the RPC and the database, and its CPU
+  time is small. This is why the aggregates are built incrementally by the collector and not
+  computed when asked. CPU measured over three days (2026-10-02 to 2026-10-04): a median of 8 ms per
+  run, 5 to 7 ms at night and 13 to 16 ms while a campaign runs. It follows the activity of the
+  network and does not grow with the stored data. Requests to the API take 1 to 6 ms.
 - The database allows 100,000 rows written a day. A run writes a fixed number of statements
   whatever the number of events: lists travel as one JSON parameter.
 - The RPC limits `eth_getTransactionByHash`, so a run reads at most 10 senders and stops its range
-  before the next one.
+  before the next one. The same budget covers the queued transactions, whose recipient is read from
+  the transaction that sent them.
 - Requests to the API count against a daily quota, with or without the cache. The cache saves
   database reads, and the rate limit protects them from requests that vary the address to miss it.
 

@@ -154,15 +154,15 @@ One row per transaction, in creation order. Times are Unix seconds (UTC).
 | Column | Meaning |
 |---|---|
 | `tx_id` | Transaction id on GenLayer. |
-| `epoch` | Epoch in effect when the transaction was created. |
+| `epoch` | Epoch in effect when the transaction was created. A queued transaction is in the epoch of the block that sent it until it enters consensus. |
 | `contract` | Address of the contract the transaction calls. |
 | `llm` | `llm`: the contract code contains an LLM call (`exec_prompt`, `prompt_comparative` or `prompt_non_comparative`). `none`: it does not. `na`: the code could not be read. Empty: not read yet. |
 | `campaign` | Name of the reference contract when the transaction was sent by the campaign wallet to one of its copies. Empty for every other transaction. |
-| `created` | Time of the block that created the transaction. |
+| `created` | Time of the block where the transaction entered consensus (`NewTransaction`). For a queued transaction, the block that sent it (`CreatedTransaction`). |
 | `created_block` | Number of that block. |
-| `status` | `first`: accepted at the first attempt. `retry`: accepted after a retry. `none`: ended without consensus (validators timeout, undetermined, cancelled, or an acceptance overturned by an appeal). `pending`: no decision yet. `unknown`: a round ended and its result was not observed. |
+| `status` | `first`: accepted at the first attempt. `retry`: accepted after a retry. `none`: ended without consensus (validators timeout, undetermined, cancelled, also before entering consensus, or an acceptance overturned by an appeal). `pending`: in consensus, no decision yet. `queued`: sent and not in consensus yet, behind earlier transactions of the same contract. `unknown`: a round ended and its result was not observed. |
 | `accepted` | Time of the first real acceptance. Empty when there was none. |
-| `accept_seconds` | `accepted` minus `created`. |
+| `accept_seconds` | `accepted` minus `created`. It does not include the wait in the queue. |
 | `leader_timeouts` | Leader timeouts before the first acceptance. |
 | `rotations` | Leader rotations before the first acceptance. |
 | `appeals` | Appeals started before the first acceptance. |
@@ -171,6 +171,7 @@ One row per transaction, in creation order. Times are Unix seconds (UTC).
 | `votes_disagree` | Votes revealed as DISAGREE. |
 | `votes_dv` | Votes revealed as DETERMINISTIC_VIOLATION (execution divergence). |
 | `votes_timeout` | Votes revealed as TIMEOUT. |
+| `queue_seconds` | Seconds from the block that sent the transaction (`CreatedTransaction`) to the block where it entered consensus (`NewTransaction`); 0 when both are the same block. Empty while it is queued, when it was cancelled before entering, or when its sending was not observed. |
 
 The JSON Lines file has the same fields and one more, `attempts`: the list of attempts of the
 transaction, each with its `leader`, whether the leader timed out (`leader_timeout`), the `result`
