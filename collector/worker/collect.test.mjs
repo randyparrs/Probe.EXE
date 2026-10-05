@@ -18,7 +18,7 @@ const IDENTITY = [...["moniker", "logoUri", "website", "description", "email", "
   { name: "extraCid", type: "bytes" }];
 import { toGen, weightOf } from "../core/staking.js";
 import TABLE from "../core/consensus-events.js";
-import { EVENTS_PAGE, badge, campaignSlot, campaigns, contracts, events, exportPage, failedCampaigns, lastCampaign, latency, operators, overview,
+import { EVENTS_PAGE, badge, campaigns, contracts, events, exportPage, failedCampaigns, lastCampaign, latency, operators, overview,
   knownEpoch, rpcIncidents, stalledContracts, tally, validBefore, validView, viewFilter, viewRange } from "./src/api.js";
 import { ADD_TRANSACTION, BACK_SPAN, MAX_SPAN, STALL_SECONDS, collect, eligibleMembers, nextEligibleSet, recipientOf as recipientOfInput, rpcClient } from "./src/collect.js";
 import { d1Store } from "./src/store.js";
@@ -358,7 +358,7 @@ test("the API answers of a view: campaign against its control, retries, latency 
   assert.deepEqual(["bad", "epoch:", "epoch:-1", "epoch:1x", "24H", "48h"].map(validView), [false, false, false, false, false, false]);
 
   const [rows, campTx, voters, lastTs] = [await s2.contractTotals(filter), await s2.campaignTx(filter), await s2.campaignVoters(filter), await s2.lastCampaign(167)];
-  const around = await s2.campaignAround(167, lastTs);
+  const around = campaigns(await s2.campaignTimes(166, 0, Math.floor(lastTs / 3600) + 2), lastTs + 60).at(-1);
   const o = overview({ view: filter.view, rows, campTx, voters, last: around, refLlm, asOf: lastTs + 60 });
   assert.deepEqual([o.network.all.tx, o.network.all.first, o.network.all.retry, o.network.all.first_rate], [2, 1, 1, 0.5]);
   assert.deepEqual([o.campaign.control.tx, o.campaign.control.first_rate, o.campaign.control.votes.timeout], [1, 1, 0]);
@@ -393,18 +393,21 @@ test("the API answers of a view: campaign against its control, retries, latency 
   assert.ok(c.network.every((r) => r.last_seen > 0 && r.reference));
 });
 
-test("the campaign bucket of a day, and a day whose bucket passed with no campaign transaction", () => {
+test("the last campaign: running, completed, late, and failed when an epoch ends without one", () => {
   const at = (iso) => Date.parse(iso) / 1000;
-  // 2026-10-01 is day 274 of the year: 274 mod 8 = 2, the bucket from 06:00 to 09:00 UTC
-  assert.deepEqual(campaignSlot(at("2026-10-01T15:00:00Z")), { start: at("2026-10-01T06:00:00Z"), end: at("2026-10-01T09:00:00Z") });
-  assert.deepEqual(campaignSlot(at("2026-10-02T00:30:00Z")), { start: at("2026-10-02T09:00:00Z"), end: at("2026-10-02T12:00:00Z") });
   const ran = { transactions: 320, started: at("2026-10-01T07:01:00Z"), last_event: at("2026-10-01T08:22:00Z") };
   assert.equal(lastCampaign(ran, at("2026-10-01T08:25:00Z")).status, "running");       // an event three minutes ago
-  assert.equal(lastCampaign(ran, at("2026-10-01T15:00:00Z")).status, "completed");
-  // the next day: before its bucket ends the last campaign is still yesterday's; after it, with none seen, failed
-  assert.equal(lastCampaign(ran, at("2026-10-02T11:00:00Z")).status, "completed");
-  assert.deepEqual(lastCampaign(ran, at("2026-10-02T12:31:00Z")),
-    { status: "failed", expected_from: at("2026-10-02T09:00:00Z"), expected_until: at("2026-10-02T12:00:00Z"), transactions: 0, started: null, last_event: null });
+  assert.deepEqual([lastCampaign(ran, at("2026-10-01T15:00:00Z")).status, lastCampaign(ran, at("2026-10-01T15:00:00Z")).late], ["completed", false]);
+  assert.equal(lastCampaign({ ...ran, late: true }, at("2026-10-01T15:00:00Z")).late, true);
+  // epochs of 2026-10-06 on: 173 ends with no campaign; failed once the grace time after its end passed
+  const epochs = [{ epoch: 172, start_ts: at("2026-10-05T17:59:36Z") }, { epoch: 173, start_ts: at("2026-10-06T18:01:38Z") }, { epoch: 174, start_ts: at("2026-10-07T18:03:40Z") }];
+  const c172 = { transactions: 320, started: at("2026-10-05T19:01:09Z"), last_event: at("2026-10-05T20:14:00Z"), epoch: 172 };
+  assert.equal(lastCampaign(c172, at("2026-10-07T18:30:00Z"), epochs).status, "completed");   // 172 started before 2026-10-06
+  assert.equal(lastCampaign(c172, at("2026-10-07T18:33:00Z"), epochs).status, "completed");   // within the grace time
+  assert.deepEqual(lastCampaign(c172, at("2026-10-07T18:34:00Z"), epochs),
+    { status: "failed", expected_from: at("2026-10-06T18:01:38Z"), expected_until: at("2026-10-07T18:03:40Z"), epoch: 173, transactions: 0, started: null, last_event: null });
+  const c173 = { transactions: 320, started: at("2026-10-07T12:00:00Z"), last_event: at("2026-10-07T13:00:00Z"), epoch: 173 };
+  assert.equal(lastCampaign(c173, at("2026-10-07T18:34:00Z"), epochs).status, "completed");
   assert.equal(lastCampaign(null, at("2026-10-01T05:00:00Z")), null);
   assert.equal(lastCampaign(null, null), null);
 });
@@ -529,6 +532,21 @@ test("campaigns of a view: one per group of transactions, numbered within the da
     [{ id: "2026-10-03", status: "failed", transactions: 0, expected_from: at("2026-10-03T12:00:00Z"), expected_until: at("2026-10-03T15:00:00Z") }]);
   assert.deepEqual(failedCampaigns(list, since, at("2026-10-04T00:00:00Z"), at("2026-10-03T15:29:00Z"), since), []);   // still within the grace time
   assert.deepEqual(failedCampaigns(list, since, at("2026-10-04T00:00:00Z"), null, since), []);
+  // from 2026-10-06: one per epoch that ended with no campaign, listed in that epoch; late campaigns
+  const epochs = [{ epoch: 173, start_ts: at("2026-10-06T18:00:00Z") }, { epoch: 174, start_ts: at("2026-10-07T18:00:00Z") }, { epoch: 175, start_ts: at("2026-10-08T18:00:00Z") }];
+  const later = campaigns([...txs("2026-10-07T12:01:00Z", 2), ...txs("2026-10-08T15:01:00Z", 2)], at("2026-10-09T00:00:00Z"), epochs);
+  assert.deepEqual(later.map((c) => [c.id, c.epoch ?? null, c.late]), [["2026-10-07", null, false], ["2026-10-08", null, false]]);
+  const tagged = campaigns([...txs("2026-10-07T09:01:00Z", 2), ...txs("2026-10-08T15:01:00Z", 2)].map((t, i) => ({ ...t, epoch: i < 2 ? 173 : 174 })), at("2026-10-09T00:00:00Z"), epochs);
+  assert.deepEqual(tagged.map((c) => [c.epoch, c.late]), [[173, false], [174, true]]);   // 173: window 09:00 to 12:00 of the 7th; 174: 12:00 to 15:00 of the 8th
+  const end = at("2026-10-10T00:00:00Z");
+  assert.deepEqual(failedCampaigns(tagged.slice(1), at("2026-10-06T18:00:00Z"), end, at("2026-10-07T18:31:00Z"), since, epochs),
+    [{ id: "epoch-173", status: "failed", transactions: 0, expected_from: at("2026-10-06T18:00:00Z"), expected_until: at("2026-10-07T18:00:00Z"), epoch: 173 }]);
+  assert.deepEqual(failedCampaigns(tagged.slice(1), at("2026-10-06T18:00:00Z"), end, at("2026-10-07T18:29:00Z"), since, epochs), []);
+  assert.deepEqual(failedCampaigns(tagged, at("2026-10-06T18:00:00Z"), end, at("2026-10-09T00:00:00Z"), since, epochs), []);
+  // the event of a failed epoch sits inside the view of that epoch
+  const ev = events({ view: "epoch:173", range: { from: at("2026-10-06T18:00:00Z"), to: at("2026-10-07T18:00:00Z") }, since,
+    failed: failedCampaigns([], at("2026-10-06T18:00:00Z"), at("2026-10-07T18:00:00Z"), at("2026-10-08T00:00:00Z"), since, epochs) });
+  assert.deepEqual(ev.events.map((e) => [e.type, e.ts]), [["campaign", at("2026-10-07T18:00:00Z") - 1]]);
 });
 
 test("RPC incidents: two bad runs in a row open one, five clean runs close it", () => {

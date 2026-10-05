@@ -207,13 +207,6 @@ export function d1Store(db) {
       return db.prepare("SELECT max(last_ts) ts FROM contract_hour WHERE epoch >= ?1 AND camp = 1").bind(epoch - 1).first("ts");
     },
 
-    // the campaign that the transaction seen at `ts` belongs to: a campaign lasts under an hour, so
-    // its transactions are in the hour of `ts` or the one before
-    async campaignAround(epoch, ts) {
-      return db.prepare(`SELECT count(*) transactions, min(first_ts) started, max(last_ts) last_event, min(epoch) epoch FROM tx
-        WHERE camp IS NOT NULL AND epoch >= ?1 AND hour >= ?2`).bind(epoch - 1, Math.floor(ts / 3600) - 1).first();
-    },
-
     // campaign transactions of a view, one row each: what the retries and the latency are computed from
     async campaignTx(filter) {
       const { results } = await db.prepare(`SELECT h.camp, h.status, h.leader_timeouts, h.rotations, h.appeals, h.recomputations, h.accept_secs

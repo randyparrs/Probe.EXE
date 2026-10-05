@@ -1,6 +1,7 @@
 // What the read API answers, built from rows of the store. Pure functions: no database, no network.
 // The API returns counts and rates; intervals are computed by whoever reads it (probe-static/stats.js).
 
+import { SCHEDULE_SINCE, dailySlot, lateOf } from "../../core/schedule.js";
 import { toGen, weightOf } from "../../core/staking.js";
 
 export const CAMPAIGN_RUNNING_SECONDS = 600;   // a campaign with an event in the last ten minutes is still running
@@ -67,33 +68,30 @@ export function latency(txs) {
            m1_to_5: secs.filter((s) => s >= 60 && s < 300).length, over_5m: secs.filter((s) => s >= 300).length };
 }
 
-// The daily campaign runs in one 3-hour bucket of the UTC day: bucket number (day of year mod 8),
-// the rule of collector/campaign/slot.mjs. Returns the bucket of the day of `now`, in seconds.
-export function campaignSlot(now) {
-  const d = new Date(now * 1000);
-  const day = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000;
-  const dayOfYear = Math.floor((day - Date.UTC(d.getUTCFullYear(), 0, 1) / 1000) / 86400) + 1;
-  return { start: day + (dayOfYear % 8) * 10800, end: day + (dayOfYear % 8 + 1) * 10800 };
-}
-export const CAMPAIGN_GRACE_SECONDS = 1800;   // after the bucket ends, before a missing campaign counts as failed
+export const CAMPAIGN_GRACE_SECONDS = 1800;   // after an epoch ends (before 2026-10-06, the bucket of a day), before a missing campaign counts as failed
 
-// The last campaign: running, completed, or failed when the bucket of the day passed with no
-// transaction of the campaign wallet. asOf: the time up to which the network has been read.
-export function lastCampaign(last, asOf) {
+// The last campaign: running or completed, and late when it started after its window
+// (collector/core/schedule.js); failed when the last epoch that ended had no campaign and none ran
+// since. last: the newest entry of campaigns() or null; epochs: rows of the epochs table; asOf: the
+// time up to which the network has been read.
+export function lastCampaign(last, asOf, epochs = []) {
   const seen = last && last.transactions ? last : null;
-  const slot = asOf == null ? null : campaignSlot(asOf);
-  if (slot && asOf > slot.end + CAMPAIGN_GRACE_SECONDS && (!seen || seen.started < slot.start)) {
-    return { status: "failed", expected_from: slot.start, expected_until: slot.end, transactions: 0, started: null, last_event: null };
+  const starts = new Map(epochs.map((e) => [e.epoch, e.start_ts]));
+  const ended = asOf == null ? [] : epochs.filter((e) => e.start_ts != null && e.start_ts >= SCHEDULE_SINCE && starts.get(e.epoch + 1) != null
+    && asOf > starts.get(e.epoch + 1) + CAMPAIGN_GRACE_SECONDS).sort((x, y) => y.epoch - x.epoch);
+  const e = ended[0];
+  if (e && (!seen || seen.started < e.start_ts)) {
+    return { status: "failed", expected_from: e.start_ts, expected_until: starts.get(e.epoch + 1), epoch: e.epoch, transactions: 0, started: null, last_event: null };
   }
   if (!seen) return null;
-  return { status: asOf != null && asOf - seen.last_event < CAMPAIGN_RUNNING_SECONDS ? "running" : "completed",
+  return { status: asOf != null && asOf - seen.last_event < CAMPAIGN_RUNNING_SECONDS ? "running" : "completed", late: seen.late === true,
            started: seen.started, last_event: seen.last_event, transactions: seen.transactions, epoch: seen.epoch ?? null };
 }
 
-// rows: contractTotals; campTx: campaignTx; voters: campaignVoters; last: campaignAround or null;
+// rows: contractTotals; campTx: campaignTx; voters: campaignVoters; last: the newest of campaigns() or null;
 // refLlm: Map of reference contract name -> whether it calls an LLM; validators: rows of the table;
 // asOf: the time up to which the network has been read
-export function overview({ view, rows, campTx, voters, last, refLlm, asOf, validators = [] }) {
+export function overview({ view, rows, campTx, voters, last, refLlm, asOf, validators = [], epochs = [] }) {
   const camp = rows.filter((r) => r.camp === 1);
   const isLlm = (name) => refLlm.get(name) === true, isControl = (name) => refLlm.get(name) === false;
   const llmTx = campTx.filter((t) => isLlm(t.camp));
@@ -108,7 +106,7 @@ export function overview({ view, rows, campTx, voters, last, refLlm, asOf, valid
       operators_all_timeout: allTimeout,
     },
     validators: validatorCounts(validators),
-    last_campaign: lastCampaign(last, asOf),
+    last_campaign: lastCampaign(last, asOf, epochs),
   };
 }
 
@@ -257,9 +255,11 @@ export const CAMPAIGN_GAP_SECONDS = 1800;   // campaign transactions created fur
 const utcDate = (ts) => new Date(ts * 1000).toISOString().slice(0, 10);
 
 // times: [{ first_ts, last_ts, epoch }] of campaign transactions, oldest first. One entry per campaign,
-// with the epoch of its first transaction. Its
-// id is the UTC date it started on, with -2, -3 for further campaigns that started the same day.
-export function campaigns(times, asOf) {
+// with the epoch of its first transaction. Its id is the UTC date it started on, with -2, -3 for
+// further campaigns that started the same day. late: it started after its window
+// (collector/core/schedule.js), so the times must reach back to the start of its epoch. epochs: rows
+// of the epochs table.
+export function campaigns(times, asOf, epochs = []) {
   const list = [];
   let prev = null;
   for (const t of times) {
@@ -275,20 +275,35 @@ export function campaigns(times, asOf) {
     c.id = n === 1 ? day : `${day}-${n}`;
     c.status = asOf != null && asOf - c.last_event < CAMPAIGN_RUNNING_SECONDS ? "running" : "completed";
   }
+  const starts = new Map(epochs.map((e) => [e.epoch, e.start_ts]));
+  for (const epoch of new Set(list.map((c) => c.epoch))) {
+    const of = list.filter((c) => c.epoch === epoch);
+    lateOf(epoch, starts.get(epoch), of.map((c) => c.started)).forEach((late, i) => { of[i].late = late; });
+  }
   return list;
 }
 
-// Days of [from, to) whose campaign bucket passed, with its grace time, and no campaign started in
-// it. since: the first second observed; asOf: the time up to which the network has been read.
-export function failedCampaigns(list, from, to, asOf, since) {
+// Failed campaigns of [from, to): epochs that started on or after 2026-10-06 and ended, with the
+// grace time, with no campaign started in them; before that date, days whose campaign bucket passed
+// with no campaign started in it. since: the first second observed; asOf: the time up to which the
+// network has been read; epochs: rows of the epochs table.
+export function failedCampaigns(list, from, to, asOf, since, epochs = []) {
   const out = [];
   if (asOf == null) return out;
   const first = Math.floor(Math.max(from, since) / 86400), last = Math.min(Math.floor(Math.min(to, asOf) / 86400), first + 60);
   for (let day = first; day <= last; day++) {
-    const slot = campaignSlot(day * 86400);
+    const slot = dailySlot(day * 86400);
+    if (slot.end > SCHEDULE_SINCE) break;
     if (slot.start < since || slot.end < from || slot.end >= to || asOf <= slot.end + CAMPAIGN_GRACE_SECONDS) continue;
     if (list.some((c) => c.started >= slot.start && c.started <= slot.end + CAMPAIGN_GRACE_SECONDS)) continue;
     out.push({ id: utcDate(slot.start), status: "failed", transactions: 0, expected_from: slot.start, expected_until: slot.end });
+  }
+  const starts = new Map(epochs.map((e) => [e.epoch, e.start_ts]));
+  for (const e of epochs) {
+    const start = e.start_ts, end = starts.get(e.epoch + 1);
+    if (start == null || end == null || start < SCHEDULE_SINCE || start < since || start < from || start >= to || asOf <= end + CAMPAIGN_GRACE_SECONDS) continue;
+    if (list.some((c) => c.started >= start && c.started < end)) continue;
+    out.push({ id: `epoch-${e.epoch}`, status: "failed", transactions: 0, expected_from: start, expected_until: end, epoch: e.epoch });
   }
   return out;
 }
@@ -340,7 +355,7 @@ export function events({ view, range, logRows = [], epochs = [], campaignList = 
     list.push({ id: `e${e.epoch}`, ts: e.start_ts, type: "epoch", data: { epoch: e.epoch, block: e.start_block ?? null, previous_seconds: prev == null ? null : e.start_ts - prev } });
   }
   for (const c of campaignList) if (inRange(c.started)) list.push({ id: `c${c.started}`, ts: c.started, type: "campaign", data: c });
-  for (const c of failed) list.push({ id: `f${c.expected_from}`, ts: c.expected_until, type: "campaign", data: c });
+  for (const c of failed) list.push({ id: `f${c.expected_from}`, ts: Math.min(c.expected_until, range.to - 1), type: "campaign", data: c });
   for (const i of incidents) if (inRange(i.from)) list.push({ id: `r${i.from}`, ts: i.from, type: "rpc", data: i });
   if (since >= range.from && since < range.to) list.push({ id: "m", ts: since, type: "method", data: { since: sinceDate } });
 

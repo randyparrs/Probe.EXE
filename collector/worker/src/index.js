@@ -106,25 +106,30 @@ export default {
       // what happened in the view, newest first: ?type= one of EVENT_GROUPS, ?before= the id of
       // the last event of the previous page
       if (url.pathname === "/api/events") {
-        // campaigns are numbered within their UTC day, so they are read from the start of the day
-        const from = Math.floor(Math.max(range.from, SINCE_TS) / 86400) * 86400;
+        // campaigns are numbered within their UTC day and are late or not by their place in their
+        // epoch, so they are read from the start of the day or of the epoch, whichever is earlier
+        const epochStart = Math.max(0, ...m.epochs.filter((e) => e.start_ts != null && e.start_ts <= range.from).map((e) => e.start_ts));
+        const from = Math.min(Math.floor(Math.max(range.from, SINCE_TS) / 86400) * 86400, epochStart || Infinity);
         const [logRows, bad, times, validators] = await Promise.all([
           store.logRows(range.from, range.to, LOG_LIMIT + 1), store.badRuns(range.from - 3600, range.to, RUNS_LIMIT + 1),
           store.campaignTimes(Math.max(0, filter.params[0] - 1), Math.floor(from / 3600), Math.floor(range.to / 3600) + 2), store.validators()]);
-        const campaignList = campaigns(times, m.asOf);
+        const campaignList = campaigns(times, m.asOf, m.epochs);
         return json(events({
           view: filter.view, range, logRows: logRows.slice(0, LOG_LIMIT), epochs: m.epochs, campaignList, since: SINCE_TS, sinceDate: EVENTS_SINCE,
-          failed: failedCampaigns(campaignList, range.from, range.to, m.asOf, SINCE_TS), incidents: rpcIncidents(bad.slice(0, RUNS_LIMIT), now),
+          failed: failedCampaigns(campaignList, range.from, range.to, m.asOf, SINCE_TS, m.epochs), incidents: rpcIncidents(bad.slice(0, RUNS_LIMIT), now),
           names: new Map(validators.map((v) => [v.address, v.moniker])), reference: REFERENCE,
           type, before, truncated: logRows.length > LOG_LIMIT || bad.length > RUNS_LIMIT,
         }), 300);
       }
 
       if (url.pathname === "/api/overview") {
-        const [rows, campTx, voters, lastTs, validators] = await Promise.all([
-          store.contractTotals(filter), store.campaignTx(filter), store.campaignVoters(filter), store.lastCampaign(m.epoch), store.validators()]);
-        const last = lastTs ? await store.campaignAround(m.epoch, lastTs) : null;
-        return json(overview({ view: filter.view, rows, campTx, voters, last, refLlm: REF_LLM, asOf: m.asOf, validators }), 300);
+        // the last campaign: the newest of the current epoch and the one before, read from the start of that one
+        const prevStart = m.epochs.find((e) => e.epoch === m.epoch - 1)?.start_ts ?? 0;
+        const [rows, campTx, voters, times, validators] = await Promise.all([
+          store.contractTotals(filter), store.campaignTx(filter), store.campaignVoters(filter),
+          store.campaignTimes(m.epoch - 1, Math.floor(prevStart / 3600), Math.floor(now / 3600) + 2), store.validators()]);
+        const last = campaigns(times, m.asOf, m.epochs).at(-1) ?? null;
+        return json(overview({ view: filter.view, rows, campTx, voters, last, refLlm: REF_LLM, asOf: m.asOf, validators, epochs: m.epochs }), 300);
       }
 
       // one row per validator: votes and leader rounds per source, status, stake and weight
