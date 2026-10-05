@@ -87,6 +87,8 @@ export async function exportAll({ base, dir, now, fetchFn = fetch }) {
   const files = new Map((index ? index.files : []).map((f) => [f.epoch, f]));
   const notes = [], columns = new Set();
   for (const { epoch } of [...meta.epochs].sort((a, b) => a.epoch - b.epoch)) {
+    // the epoch goes into file names: only a plain number is accepted
+    if (!Number.isSafeInteger(epoch) || epoch < 0) throw new Error(`meta: epoch ${JSON.stringify(epoch)} is not a number`);
     const rows = await fetchEpoch(base, epoch, fetchFn);
     const name = { csv: `epoch-${epoch}.csv`, jsonl: `epoch-${epoch}.jsonl` };
     const path = join(dir, name.jsonl), jsonl = toJsonl(rows);
