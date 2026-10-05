@@ -10,11 +10,6 @@ name: Daily data export
 
 on:
   workflow_dispatch:
-    inputs:
-      page_url:
-        description: "Where the page is served"
-        type: string
-        default: "https://probe-exe.pages.dev"
 
 concurrency:
   group: probe-exe-export
@@ -30,10 +25,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
 
@@ -51,7 +46,6 @@ jobs:
       - name: Export
         run: node collector/export/export.mjs data-branch
         env:
-          PAGE_URL: ${{ inputs.page_url || 'https://probe-exe.pages.dev' }}
           COMMIT_MESSAGE_FILE: ${{ runner.temp }}/commit-message.txt
 
       - name: Commit and push
