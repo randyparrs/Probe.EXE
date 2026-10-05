@@ -260,13 +260,17 @@
     const last = o.last_campaign;
     const wallet = () => (meta && meta.campaign_wallet ? el('div', { class: 'c57' }, 'Sent by the campaign wallet ', address(meta.campaign_wallet)) : null);
     empty['last-campaign'] = !last;
-    if (last && last.status === 'failed') {
-      // the bucket of the day passed with no transaction of the campaign wallet
+    if (last && last.status === 'failed' && last.epoch != null) {
+      // the last epoch that ended had no transaction of the campaign wallet
+      body('last-campaign', el('div', {}, `Last campaign: none in epoch ${last.epoch}, which ended ${full(last.expected_until)} `,
+        el('span', { class: 'cs-failed' }, '(failed)')), wallet());
+    } else if (last && last.status === 'failed') {
+      // before 2026-10-06: the bucket of the day passed with no transaction of the campaign wallet
       body('last-campaign', el('div', {}, `Last campaign: expected ${full(last.expected_from).replace(' UTC', '')} to ${clock(new Date(last.expected_until * 1000))}, no transactions `,
         el('span', { class: 'cs-failed' }, '(failed)')), wallet());
     } else if (last) {
       body('last-campaign', el('div', {}, 'Last campaign: ', el('span', { class: 'c5', 'data-utc': iso(last.started) }, full(last.started)),
-        ', ', dataLink(`${int(last.transactions)} transactions`, last.epoch), ' ', el('span', { class: last.status === 'running' ? 'cs-running' : 'c64' }, `(${last.status})`)), wallet());
+        ', ', dataLink(`${int(last.transactions)} transactions`, last.epoch), ' ', el('span', { class: last.status === 'running' ? 'cs-running' : 'c64' }, `(${last.status}`), last.late ? [', ', el('span', { class: 'cs-late' }, 'late')] : null, ')'), wallet());
       if (window.ProbeUI) window.ProbeUI.localTimes(document.querySelector('fieldset[data-block="last-campaign"]'));
     }
 
@@ -429,7 +433,7 @@
       case 'banned': return `${operatorName(d)} ${d.until ? `banned until epoch ${d.until}.` : 'banned permanently.'}`;
       case 'stalled': return `${contractText(d)}: stalled since ${full(d.since)}.`;
       case 'recovered': return `${contractText(d)}: recovered after ${int(d.transactions)} transactions without a vote.`;
-      case 'campaign': return `Campaign ${d.id}: ${int(d.transactions)} transactions, ${d.status}.`;
+      case 'campaign': return d.status === 'failed' && d.epoch != null ? `No campaign in epoch ${d.epoch}: failed.` : `Campaign ${d.id}: ${int(d.transactions)} transactions, ${d.status}${d.late ? ', late' : ''}.`;
       case 'method': return `Campaigns counted from consensus events (METRICS v6) since ${d.since}.`;
       case 'rpc': return d.open ? `RPC returning non-JSON responses since ${full(d.from)}.` : `RPC returned non-JSON responses from ${full(d.from)} to ${full(d.to)}.`;
       default: return e.type;
@@ -451,7 +455,8 @@
         case 'banned': return [operator(), d.until ? ` banned until epoch ${d.until}.` : ' banned permanently.'];
         case 'stalled': return [contract(), `: stalled since ${full(d.since)}.`];
         case 'recovered': return [contract(), `: recovered after ${int(d.transactions)} transactions without a vote`, d.tx ? [', with the vote on ', txLink(d.tx)] : null, '.'];
-        case 'campaign': return [`Campaign ${d.id}: `, dataLink(`${int(d.transactions)} transactions`, d.epoch), `, ${d.status}.`,
+        case 'campaign': if (d.status === 'failed' && d.epoch != null) return [eventText(e)];
+          return [`Campaign ${d.id}: `, dataLink(`${int(d.transactions)} transactions`, d.epoch), `, ${d.status}${d.late ? ', late' : ''}.`,
           meta && meta.campaign_wallet ? [' Wallet ', address(meta.campaign_wallet), '.'] : null];
         default: return [eventText(e)];
       }
@@ -638,30 +643,38 @@
   const CONTRACTS = ['a-reference-contracts', 'b-network-contracts', 'c-stalled-contracts'];
   const EVENTS = ['event-log-newest-first'];
 
-  // ---- The campaign runs once a day, so a new epoch has no campaign for hours. While the current
-  // epoch has none, its campaign blocks stay empty and each section says when the next campaign is
+  // ---- The campaign runs once per epoch, so a new epoch has no campaign for hours. While the current
+  // epoch has none, its campaign blocks stay empty and each section says when its campaign is
   // expected, with a button to the epoch of the last one. While a campaign is running the sections
   // say so and the blocks show what there is so far. An earlier epoch picked by hand is shown as it is.
   const CAMP_BLOCKS = ['first-attempt-acceptance-contracts-with-llm-calls', 'first-attempt-acceptance-control-without-llm', 'what-goes-wrong-votes',
     'what-goes-wrong-attempts', 'time-to-acceptance', 'operators-timing-out', 'a-reference-contracts', 'committee-selection-check'];
   const WAITING = 'Waiting for the next campaign.';
+  const GAP = 'No campaign ran during this epoch: the daily slot fell outside it. Campaigns are scheduled per epoch since 2026-10-06.';
   const emptyText = new Map();   // block -> the text of its "no data" state, when it is not the usual one
   const campaignTx = o => o.campaign.llm.tx + o.campaign.control.tx;
   const isCurrent = selected => !!(meta && meta.epoch) && selected === `epoch:${meta.epoch.number}`;
-  const markWaiting = waiting => { for (const key of CAMP_BLOCKS) { if (waiting) emptyText.set(key, WAITING); else emptyText.delete(key); } };
+  const markCamp = text => { for (const key of CAMP_BLOCKS) { if (text) emptyText.set(key, text); else emptyText.delete(key); } };
 
-  // The 3-hour bucket of a UTC day the campaign runs in: bucket number (day of the year mod 8), the
-  // rule of collector/campaign/slot.mjs. Seconds.
-  function campaignSlot(now) {
-    const d = new Date(now * 1000);
-    const day = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 1000;
-    const dayOfYear = Math.floor((day - Date.UTC(d.getUTCFullYear(), 0, 1) / 1000) / 86400) + 1;
-    return { day, start: day + (dayOfYear % 8) * 10800, end: day + (dayOfYear % 8 + 1) * 10800 };
+  // The campaign windows of an epoch that started at `start`, those that open up to `until`, the rule
+  // of collector/core/schedule.js: 3 hours, (epoch mod 8) x 3 hours after the epoch starts, and one
+  // more every 24 hours once the epoch has lasted more than 25 hours. Seconds.
+  const SCHEDULE_SINCE = Date.UTC(2026, 9, 6) / 1000;
+  function windowsOf(epoch, start, until) {
+    const out = [];
+    for (let k = 0; ; k++) {
+      const s = start + k * 86400 + (epoch % 8) * 10800;
+      if (s > until) return out;
+      if (k === 0 || s - start > 25 * 3600) out.push({ start: s, end: s + 10800 });
+    }
   }
-  // the bucket of the next campaign: today's while it has not ended and has no campaign, tomorrow's otherwise
-  function nextSlot(now, lastStarted) {
-    const today = campaignSlot(now);
-    return now < today.end && !(lastStarted >= today.start) ? today : campaignSlot(today.day + 86400);
+  // the "no data" text of the campaign blocks with no campaign in the view: waiting in the current
+  // epoch; in an epoch of the daily schedule (before 2026-10-06), the gap it left
+  function campaignText(o, selected) {
+    if (campaignTx(o)) return null;
+    if (isCurrent(selected)) return WAITING;
+    const m = /^epoch:(d+)$/.exec(selected || ''), e = m && meta ? meta.epochs.find(x => x.epoch === +m[1]) : null;
+    return e && e.since != null && e.since < SCHEDULE_SINCE ? GAP : null;
   }
   // the newest epoch before the current one that has campaign transactions, or null
   function lastCampaignEpoch() {
@@ -678,12 +691,15 @@
     let parts = null;
     if (current && last && last.status === 'running') {
       parts = [el('span', {}, `Campaign running since ${clock(new Date(last.started * 1000))}. Results appear as transactions finish.`)];
-    } else if (waiting) {
-      const slot = nextSlot(meta.now, last ? last.started : null);
-      const hm = ts => (ts === slot.day + 86400 ? '24:00' : clock(new Date(ts * 1000)).replace(' UTC', ''));
+    } else if (waiting && meta.epoch.since != null) {
+      // the first window of the epoch: an epoch with no campaign answers that one first
+      const e = meta.epoch.number, w = windowsOf(e, meta.epoch.since, meta.epoch.since + (e % 8) * 10800)[0];
+      const hm = ts => clock(new Date(ts * 1000)).replace(' UTC', '');
       const m = lastCampaignEpoch();
-      const day = new Date(slot.start * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-      parts = [el('span', {}, `Next campaign: ${day}, ${hm(slot.start)} to ${hm(slot.end)} UTC. Campaign data for this epoch appears once it runs.`),
+      const day = new Date(w.start * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+      const text = meta.now < w.end ? `Next campaign: ${day}, ${hm(w.start)} to ${hm(w.end)} UTC. Campaign data for this epoch appears once it runs.`
+        : `The campaign of this epoch is late: its window was ${day}, ${hm(w.start)} to ${hm(w.end)} UTC. It runs at the next dispatch, within 3 hours.`;
+      parts = [el('span', {}, text),
         m == null ? null : el('button', { class: 'c63', type: 'button', 'data-camp-view': `epoch:${m}` }, `See the last campaign (epoch ${m})`)];
     }
     $$('[data-camp-note]').forEach(node => {
@@ -713,13 +729,13 @@
     const selected = view, q = view ? '?view=' + encodeURIComponent(view) : '';
     const now = Math.floor(Date.now() / 1000);
     const overview = get('api/overview' + q);
-    const waiting = overview.then(o => isCurrent(selected) && !campaignTx(o)).catch(() => false);
-    group(OVERVIEW, () => overview, o => { markWaiting(campaignNote(o, selected)); return renderOverview(o); });
-    group(CONTRACTS, () => Promise.all([get('api/contracts' + q), waiting]), ([c, w]) => {
-      markWaiting(w);
+    const campText = overview.then(o => campaignText(o, selected)).catch(() => null);
+    group(OVERVIEW, () => overview, o => { campaignNote(o, selected); markCamp(campaignText(o, selected)); return renderOverview(o); });
+    group(CONTRACTS, () => Promise.all([get('api/contracts' + q), campText]), ([c, t]) => {
+      markCamp(t);
       return { 'a-reference-contracts': renderReference(c.reference), 'b-network-contracts': renderNetwork(c.network, now), 'c-stalled-contracts': renderStalled(c.stalled || []) };
     });
-    group(OPERATORS, () => Promise.all([get('api/operators' + q), waiting]), ([o, w]) => { markWaiting(w); return renderOperators(o.operators); });
+    group(OPERATORS, () => Promise.all([get('api/operators' + q), campText]), ([o, t]) => { markCamp(t); return renderOperators(o.operators); });
     group(EVENTS, () => get('api/events' + q), renderEvents);
   }
 

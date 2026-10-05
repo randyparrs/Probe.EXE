@@ -93,3 +93,17 @@ test("the daily bucket used before 2026-10-06", () => {
   // 16:01; the one of 2026-10-05 (day 278, 18:00 to 21:00) opened after epoch 172 started: 171 had none
   assert.ok(dailySlot(at("2026-10-04T12:00:00Z")).start < STARTS[171] && dailySlot(at("2026-10-05T12:00:00Z")).start > STARTS[172]);
 });
+
+test("the page repeats the same windows (probe-static/data.js)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const vm = await import("node:vm");
+  const page = readFileSync(new URL("../../probe-static/data.js", import.meta.url), "utf8");
+  const src = /\n  function windowsOf\(epoch, start, until\) \{[\s\S]*?\n  \}\n/.exec(page)[0];
+  const pageWindows = vm.runInNewContext(`(${src.trim()})`);
+  for (let epoch = 167; epoch < 183; epoch++) {
+    for (const until of [0, 5 * H, 24 * H, 26 * H, 50 * H, 75 * H]) {
+      assert.equal(JSON.stringify(pageWindows(epoch, 1000, 1000 + until)), JSON.stringify(windowsOf(epoch, 1000, 1000 + until)), `epoch ${epoch}, ${until / H} h`);
+    }
+  }
+  assert.ok(page.includes(`const SCHEDULE_SINCE = Date.UTC(2026, 9, 6) / 1000;`) && SCHEDULE_SINCE === Date.UTC(2026, 9, 6) / 1000);
+});

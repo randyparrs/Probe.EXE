@@ -510,6 +510,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 /* campaign and RPC status variants */
 .cs-running{color:#e3a008;font-weight:600}
 .cs-failed{color:#f0524f;font-weight:600}
+.cs-late{color:#e3a008;font-weight:600}
 .rpc-degraded{color:#e3a008;font-weight:600}
 .bar-failing{margin-top:4px;color:#f0524f;white-space:pre;overflow:hidden}
 

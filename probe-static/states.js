@@ -15,7 +15,7 @@
     [/^Event log/, 'No events in this view.'],
   ];
   const EMPTY_BY_SOURCE = {
-    CAMP: 'No campaign ran in this view yet. The daily campaign runs at a rotating hour.',
+    CAMP: 'No campaign ran in this view yet. The campaign runs once per epoch at a rotating hour.',
     NET: 'No network transactions observed in this view.',
     CHAIN: 'No data recorded for this epoch.',
   };
