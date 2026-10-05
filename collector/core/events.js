@@ -9,10 +9,15 @@
 // - "accepted at the first attempt": the first real acceptance comes after exactly one proposal
 //   (TransactionReceiptProposed) and no leader timeout, leader rotation, appeal, recomputation or
 //   validators-timeout round before it; accepted otherwise: "after retry".
-// - The final state decides: a transaction whose last decision is a validators timeout, an
-//   undetermined result or a cancellation is "no consensus", also when it had been accepted before
-//   and an appeal overturned it. An appeal that confirms the acceptance keeps its classification.
-// - Anything without a decision yet is "pending".
+// - The final state decides: a transaction whose last decision is a validators timeout, a round
+//   without a majority or an undetermined result is "no consensus" once it is finalized, also when it
+//   had been accepted before and an appeal overturned it. Until it is finalized a rotation or an
+//   appeal can still follow, so it is "pending". A cancellation is "no consensus" at once. An appeal
+//   that confirms the acceptance keeps its classification.
+// - A transaction finalized with no real acceptance is "no consensus".
+// - Anything else without a decision yet is "pending".
+// - A revealed vote belongs to the attempt whose committee (TransactionReceiptProposed) contains the
+//   voter, the latest one when several do; to the current attempt when none does.
 //
 // Creation. A transaction emits NewTransaction when it enters consensus. One that has to wait behind
 // earlier transactions of its contract also emits CreatedTransaction when it is sent; one that enters
@@ -87,6 +92,14 @@ export function newTx(txId) {
 
 const AGREE_RESULTS = new Set([1, 6]);  // RESULT: AGREE, MAJORITY_AGREE
 const current = (tx) => tx.attempts[tx.attempts.length - 1];
+// the attempt a vote belongs to: the latest whose committee contains the voter, else the current one
+function attemptOf(tx, validator) {
+  for (let i = tx.attempts.length - 1; i >= 0; i--) {
+    if (tx.attempts[i].validators && tx.attempts[i].validators.includes(validator)) return tx.attempts[i];
+  }
+  if (!current(tx)) attempt(tx, null);
+  return current(tx);
+}
 function attempt(tx, leader) {
   tx.attempts.push({ leader: leader ?? null, timedOut: false, validators: null, votes: [], result: null });
 }
@@ -140,11 +153,11 @@ export function apply(tx, ev) {
       if (!current(tx) || current(tx).validators) attempt(tx, current(tx)?.leader);
       current(tx).validators = ev.args.validators;
       break;
-    case "VoteRevealed":
-      if (!current(tx)) attempt(tx, null);
-      current(tx).votes.push([ev.args.validator, ev.args.voteType]);
+    case "VoteRevealed": {
+      const a = attemptOf(tx, ev.args.validator);
+      a.votes.push([ev.args.validator, ev.args.voteType]);
       if (ev.args.isLastVote) {
-        current(tx).result = ev.args.result;
+        a.result = ev.args.result;
         if (tx.roundEnd && tx.roundEnd.block === ev.block) {
           roundEnded(tx, ev.args.result, tx.roundEnd.block, tx.roundEnd.ts);
           tx.roundEnd = null;
@@ -153,6 +166,7 @@ export function apply(tx, ev) {
         }
       }
       break;
+    }
     case "AppealStarted":
       if (open) tx.appeals++;
       break;
@@ -177,13 +191,14 @@ export function apply(tx, ev) {
 
 // "first" | "retry" | "none" | "pending"; "queued" when it was sent and has not entered consensus;
 // "partial" when the transaction started before the observed range (its NewTransaction event was not
-// seen, so its attempts cannot be counted); "unknown" when a round ended but its result was not seen
-// (to be read from the chain).
+// seen, so its attempts cannot be counted); "unknown" when a round ended and the vote that carries its
+// result was not seen.
 export function status(tx) {
   if (tx.roundEnd) return "unknown";
-  if (tx.decision && tx.decision !== "accepted") return "none";
+  if (tx.cancelled) return "none";
+  if (tx.decision && tx.decision !== "accepted") return tx.finalized ? "none" : "pending";
   if (tx.queued) return "queued";
   if (tx.recipient == null) return "partial";
   if (tx.decision === "accepted") return tx.firstAttempt ? "first" : "retry";
-  return "pending";
+  return tx.finalized ? "none" : "pending";
 }

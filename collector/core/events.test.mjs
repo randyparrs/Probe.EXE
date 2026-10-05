@@ -56,11 +56,13 @@ test("a transaction whose start was not observed is partial", () => {
   assert.equal(status(tx), "partial");
 });
 
-test("no acceptance: undetermined is no consensus, otherwise pending", () => {
+test("no acceptance: undetermined is pending until finalized, then no consensus", () => {
   const tx = newTx("0x" + "cd".repeat(32));
   apply(tx, { name: "NewTransaction", args: { txId: tx.txId, recipient: "0x" + "11".repeat(20), activator: "0x" + "22".repeat(20) }, block: 1, logIndex: 0, ts: 1 });
   assert.equal(status(tx), "pending");
   apply(tx, { name: "TransactionUndetermined", args: { txId: tx.txId }, block: 2, logIndex: 0, ts: 2 });
+  assert.equal(status(tx), "pending");            // an appeal can still follow
+  apply(tx, { name: "TransactionFinalized", args: { txId: tx.txId }, block: 3, logIndex: 0, ts: 3 });
   assert.equal(status(tx), "none");
 });
 
@@ -91,7 +93,7 @@ test("TransactionAccepted counts as acceptance only when the round result is AGR
 test("a round that ends by validators timeout is not an acceptance", () => {
   const tx = start();
   roundEnd(tx, 3, 4);                             // TIMEOUT
-  assert.equal(status(tx), "none");
+  assert.equal(status(tx), "pending");            // not finalized: an appeal can still follow
   assert.equal(tx.acceptedBlock, null);
   apply(tx, ev("AppealStarted", { appellant: V, bond: "0", validators: [] }, 5));
   roundEnd(tx, 1, 6);                             // the appeal ends in AGREE
@@ -104,9 +106,12 @@ test("an acceptance overturned by an appeal ends as no consensus; a confirmed on
   assert.equal(status(tx), "first");
   apply(tx, ev("AppealStarted", { appellant: V, bond: "0", validators: [] }, 5));
   apply(tx, ev("TransactionUndetermined", {}, 6));
-  assert.equal(status(tx), "none");
+  assert.equal(status(tx), "pending");
   roundEnd(tx, 1, 7);
-  assert.equal(status(tx), "first");
+  assert.equal(status(tx), "first");              // confirmed by the appeal
+  apply(tx, ev("TransactionUndetermined", {}, 8));
+  apply(tx, ev("TransactionFinalized", {}, 9));
+  assert.equal(status(tx), "none");               // overturned and finalized
 });
 
 test("a queued transaction counts as created when it enters consensus; the wait is kept apart", () => {
@@ -133,4 +138,41 @@ test("a transaction that enters consensus at once emits no CreatedTransaction: n
   const tx = newTx(ID);
   apply(tx, ev("NewTransaction", { recipient: "0x" + "11".repeat(20), activator: "0x" + "22".repeat(20) }, 7));
   assert.deepEqual([status(tx), tx.firstBlock, tx.createdBlock, tx.queueSecs], ["pending", 7, null, 0]);
+});
+
+// recorded logs of three real transactions, one per rule of 2026-10-05
+const v6 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "fixtures", "v6-rules.json"), "utf8"));
+// the states of one transaction after each of its events, in chain order
+function replay(id) {
+  const tx = newTx(id), states = [];
+  for (const log of v6.logs) {
+    const e = decodeLog(log);
+    if (!e || !txIdsOf(e).includes(id)) continue;
+    apply(tx, e);
+    states.push({ name: e.name, status: status(tx) });
+  }
+  return { tx, states };
+}
+
+test("recorded: a transaction finalized with no real acceptance is no consensus, pending before", () => {
+  const { tx, states } = replay(v6.finalizedWithoutAcceptance);
+  assert.equal(tx.acceptedBlock, null);
+  assert.deepEqual(states.slice(-1), [{ name: "TransactionFinalized", status: "none" }]);
+  assert.ok(states.slice(0, -1).every((s) => s.status === "pending"));
+});
+
+test("recorded: after a validators timeout it stays pending while an appeal can follow, then the appeal decides", () => {
+  const { tx, states } = replay(v6.appealAfterValidatorsTimeout);
+  assert.ok(tx.validatorsTimeouts > 0 && tx.appeals > 0);
+  assert.ok(!states.some((s) => s.status === "none"));          // never counted as no consensus on the way
+  assert.equal(status(tx), "retry");
+});
+
+test("recorded: a vote revealed after a rotation belongs to the attempt whose committee has the voter", () => {
+  const { tx } = replay(v6.voteAfterRotation);
+  const revealed = v6.logs.map(decodeLog).filter((e) => e && e.name === "VoteRevealed" && e.args.txId === v6.voteAfterRotation).length;
+  assert.ok(tx.rotations > 0);
+  assert.equal(tx.attempts.reduce((n, a) => n + a.votes.length, 0), revealed);
+  for (const a of tx.attempts.filter((x) => x.validators)) assert.ok(a.votes.every(([v]) => a.validators.includes(v)));
+  assert.ok(tx.attempts.filter((x) => x.validators).every((a) => a.result != null));   // each round has its result
 });
