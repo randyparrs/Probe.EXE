@@ -417,11 +417,12 @@ implement them.
 - **Views.** A view is one epoch or the last 24 hours. A transaction belongs to the epoch and the
   clock hour in which it was created; "last 24 hours" counts whole clock hours, so it can include up
   to one hour more.
-- **Created.** A transaction emits `CreatedTransaction` when it is sent and
-  `NewTransaction` when it enters consensus. Both come in the same block unless the contract has a
-  queue of earlier transactions. The transaction counts as created when it enters consensus: its
-  block, time, epoch and hour, and the time to acceptance, start at `NewTransaction`. The wait in
-  between is kept apart (`queue_seconds` in the data files). Before this rule the block and time
+- **Created.** A transaction emits `NewTransaction` when it enters consensus. One that has to wait
+  behind earlier transactions of the same contract also emits `CreatedTransaction` when it is sent;
+  one that enters at once does not (measured: 25 of 25 transactions in 6,000 blocks on 2026-10-05
+  emitted only `NewTransaction`). The transaction counts as created when it enters consensus: its
+  block, time, epoch and hour, and the time to acceptance, start at `NewTransaction`. The wait is
+  kept apart (`queue_seconds` in the data files, 0 for a transaction that entered at once). Before this rule the block and time
   of creation were those of `CreatedTransaction` while the epoch and hour were those of
   `NewTransaction`; 2 of 3,459 transactions waited across an epoch change and were missing from
   the data files. The stored transactions were corrected.

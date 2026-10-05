@@ -171,7 +171,7 @@ One row per transaction, in creation order. Times are Unix seconds (UTC).
 | `votes_disagree` | Votes revealed as DISAGREE. |
 | `votes_dv` | Votes revealed as DETERMINISTIC_VIOLATION (execution divergence). |
 | `votes_timeout` | Votes revealed as TIMEOUT. |
-| `queue_seconds` | Seconds from the block that sent the transaction (`CreatedTransaction`) to the block where it entered consensus (`NewTransaction`); 0 when both are the same block. Empty while it is queued, when it was cancelled before entering, or when its sending was not observed. |
+| `queue_seconds` | Seconds the transaction waited behind earlier transactions of the same contract: from the block that sent it (`CreatedTransaction`, emitted only for a transaction that waits) to the block where it entered consensus (`NewTransaction`). 0 when it entered at once. Empty while it is queued and when it was cancelled before entering. |
 
 The JSON Lines file has the same fields and one more, `attempts`: the list of attempts of the
 transaction, each with its `leader`, whether the leader timed out (`leader_timeout`), the `result`
