@@ -131,7 +131,9 @@ python scripts/phase0_annexes.py reread
 They print, in that order, `network-report-v1.txt` (`--tag v2` to `v6` for the other five),
 `validation-final.txt`, `sensitivity-events.txt`, `annex-phase0-v5.txt` and `annex-reread-v4.txt`.
 The annexes are built from the rows of the Phase 0 campaigns: `campaign-<contract>.jsonl`,
-`-r2.jsonl`, `-dv1.jsonl` and `-final.jsonl`.
+`-r2.jsonl`, `-dv1.jsonl` and `-final.jsonl`. The output equals the published file once line
+endings are normalized: some files were saved with CRLF endings and others with LF, and the
+scripts write the endings of the system they run on.
 
 Two things in `results/` are in Spanish and are published as they were recorded:
 
@@ -264,6 +266,9 @@ The read-only API is meant to let others build alerts.
 ## Author
 
 Randy Parra, [github.com/randyparrs](https://github.com/randyparrs).
+
+The history of `main` was rewritten on 2026-10-04 only to change the author email of its commits;
+the content of every commit is the same as before.
 
 ## License
 
